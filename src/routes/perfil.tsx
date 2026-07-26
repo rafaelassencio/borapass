@@ -1,9 +1,12 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { Bell, Globe, Heart, LogOut, Settings, Ticket, Plane, ChevronRight, Moon } from "lucide-react";
+import { Bell, Globe, Heart, LogOut, Settings, Ticket, Plane, ChevronRight, Moon, LogIn } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
+import { useAuth, useProfile } from "@/hooks/use-auth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/perfil")({
   head: () => ({ meta: [{ title: "Perfil — Bora Pass" }] }),
@@ -12,6 +15,19 @@ export const Route = createFileRoute("/perfil")({
 
 function Perfil() {
   const [dark, setDark] = useState(false);
+  const navigate = useNavigate();
+  const { user, loading } = useAuth();
+  const profile = useProfile(user?.id);
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    toast.success("Você saiu da sua conta");
+    navigate({ to: "/login" });
+  }
+
+  const displayName = profile?.full_name || user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Visitante";
+  const initials = displayName.slice(0, 2).toUpperCase();
+
   return (
     <AppShell>
       <PageHeader title="Perfil" />
@@ -19,19 +35,23 @@ function Perfil() {
         <div className="rounded-3xl bg-gradient-hero p-6 text-white shadow-brand">
           <div className="flex items-center gap-4">
             <Avatar className="h-16 w-16 border-4 border-white/40">
-              <AvatarImage src="https://i.pravatar.cc/120?img=32" alt="" />
-              <AvatarFallback>MC</AvatarFallback>
+              {profile?.avatar_url && <AvatarImage src={profile.avatar_url} alt="" />}
+              <AvatarFallback>{initials}</AvatarFallback>
             </Avatar>
-            <div>
-              <h2 className="text-xl font-bold">Maria Clara</h2>
-              <p className="text-sm opacity-90">Rio de Janeiro, RJ</p>
+            <div className="min-w-0 flex-1">
+              <h2 className="truncate text-xl font-bold">{displayName}</h2>
+              <p className="truncate text-sm opacity-90">
+                {user?.email || (loading ? "Carregando..." : "Faça login para salvar suas viagens")}
+              </p>
             </div>
           </div>
-          <div className="mt-5 grid grid-cols-3 gap-3">
-            <Stat n={12} label="Favoritos" />
-            <Stat n={8} label="Cupons" />
-            <Stat n={5} label="Viagens" />
-          </div>
+          {user && (
+            <div className="mt-5 grid grid-cols-3 gap-3">
+              <Stat n={0} label="Favoritos" />
+              <Stat n={0} label="Cupons" />
+              <Stat n={0} label="Viagens" />
+            </div>
+          )}
         </div>
 
         <div className="mt-6 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
@@ -59,9 +79,21 @@ function Perfil() {
           <Row icon={<Settings className="h-4 w-4" />} label="Configurações" />
         </div>
 
-        <Link to="/login" className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-sm font-semibold text-destructive shadow-soft">
-          <LogOut className="h-4 w-4" /> Sair da conta
-        </Link>
+        {user ? (
+          <button
+            onClick={handleLogout}
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl border border-border bg-card py-3.5 text-sm font-semibold text-destructive shadow-soft"
+          >
+            <LogOut className="h-4 w-4" /> Sair da conta
+          </button>
+        ) : (
+          <Link
+            to="/login"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-semibold text-white shadow-brand"
+          >
+            <LogIn className="h-4 w-4" /> Entrar / Criar conta
+          </Link>
+        )}
         <p className="mt-6 text-center text-xs text-muted-foreground">Bora Pass v1.0 · Feito com ❤ para viajantes</p>
       </div>
     </AppShell>
