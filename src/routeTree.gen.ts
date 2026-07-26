@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RoteirosRouteImport } from './routes/roteiros'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as MapaRouteImport } from './routes/mapa'
 import { Route as LoginRouteImport } from './routes/login'
@@ -28,6 +29,11 @@ import { Route as CuponsIdRouteImport } from './routes/cupons.$id'
 const RoteirosRoute = RoteirosRouteImport.update({
   id: '/roteiros',
   path: '/roteiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -108,6 +114,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/perfil': typeof PerfilRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/roteiros': typeof RoteirosRoute
   '/cupons/$id': typeof CuponsIdRoute
   '/eventos/$id': typeof EventosIdRoute
@@ -125,6 +132,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/perfil': typeof PerfilRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/roteiros': typeof RoteirosRoute
   '/cupons/$id': typeof CuponsIdRoute
   '/eventos/$id': typeof EventosIdRoute
@@ -143,6 +151,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/mapa': typeof MapaRoute
   '/perfil': typeof PerfilRoute
+  '/reset-password': typeof ResetPasswordRoute
   '/roteiros': typeof RoteirosRoute
   '/cupons/$id': typeof CuponsIdRoute
   '/eventos/$id': typeof EventosIdRoute
@@ -162,6 +171,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mapa'
     | '/perfil'
+    | '/reset-password'
     | '/roteiros'
     | '/cupons/$id'
     | '/eventos/$id'
@@ -179,6 +189,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mapa'
     | '/perfil'
+    | '/reset-password'
     | '/roteiros'
     | '/cupons/$id'
     | '/eventos/$id'
@@ -196,6 +207,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/mapa'
     | '/perfil'
+    | '/reset-password'
     | '/roteiros'
     | '/cupons/$id'
     | '/eventos/$id'
@@ -214,6 +226,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   MapaRoute: typeof MapaRoute
   PerfilRoute: typeof PerfilRoute
+  ResetPasswordRoute: typeof ResetPasswordRoute
   RoteirosRoute: typeof RoteirosRoute
   CuponsIdRoute: typeof CuponsIdRoute
   EventosIdRoute: typeof EventosIdRoute
@@ -232,6 +245,13 @@ declare module '@tanstack/react-router' {
       path: '/roteiros'
       fullPath: '/roteiros'
       preLoaderRoute: typeof RoteirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -342,6 +362,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   MapaRoute: MapaRoute,
   PerfilRoute: PerfilRoute,
+  ResetPasswordRoute: ResetPasswordRoute,
   RoteirosRoute: RoteirosRoute,
   CuponsIdRoute: CuponsIdRoute,
   EventosIdRoute: EventosIdRoute,
