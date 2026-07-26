@@ -80,7 +80,11 @@ function Perfil() {
               }}
             />
           </div>
+          <Row icon={<Settings className="h-4 w-4" />} label="Configurações" />
+        </div>
+
         <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+
           {(isPartner || isAdmin) && (
             <Row icon={<Store className="h-4 w-4 text-primary" />} label="Painel do parceiro" to="/parceiro" />
           )}
