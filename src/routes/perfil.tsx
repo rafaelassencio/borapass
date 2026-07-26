@@ -83,19 +83,20 @@ function Perfil() {
           <Row icon={<Settings className="h-4 w-4" />} label="Configurações" />
         </div>
 
-        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+        {user && (
+          <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+            {(isPartner || isAdmin) && (
+              <Row icon={<Store className="h-4 w-4 text-primary" />} label="Painel do parceiro" to="/parceiro" />
+            )}
+            {isAdmin && (
+              <Row icon={<Shield className="h-4 w-4 text-accent" />} label="Painel admin" to="/admin" />
+            )}
+            {!isPartner && !isAdmin && (
+              <Row icon={<Store className="h-4 w-4" />} label="Quero ser parceiro" to="/parceiro" />
+            )}
+          </div>
+        )}
 
-          {(isPartner || isAdmin) && (
-            <Row icon={<Store className="h-4 w-4 text-primary" />} label="Painel do parceiro" to="/parceiro" />
-          )}
-          {isAdmin && (
-            <Row icon={<Shield className="h-4 w-4 text-accent" />} label="Painel admin" to="/admin" />
-          )}
-          {!isPartner && !isAdmin && user && (
-            <Row icon={<Store className="h-4 w-4" />} label="Quero ser parceiro" to="/parceiro" />
-          )}
-          <Row icon={<Settings className="h-4 w-4" />} label="Configurações" />
-        </div>
 
 
         {user ? (
