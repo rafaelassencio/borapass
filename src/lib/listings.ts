@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Database } from "@/integrations/supabase/types";
 
-export type ListingCategory = Database["public"]["Enums"]["listing_category"];
+export type ListingCategory = "passeio" | "hospedagem" | "restaurante" | "evento" | "cupom";
 export type Listing = Database["public"]["Tables"]["listings"]["Row"];
 
 import tourImg from "@/assets/tour-1.jpg";
