@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      listings: {
+        Row: {
+          active: boolean
+          address: string | null
+          category: string
+          city: string | null
+          created_at: string
+          description: string | null
+          discount: string | null
+          id: string
+          image_url: string | null
+          owner_id: string
+          price: number | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          address?: string | null
+          category: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          discount?: string | null
+          id?: string
+          image_url?: string | null
+          owner_id: string
+          price?: number | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          address?: string | null
+          category?: string
+          city?: string | null
+          created_at?: string
+          description?: string | null
+          discount?: string | null
+          id?: string
+          image_url?: string | null
+          owner_id?: string
+          price?: number | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -67,6 +115,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_list_users: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          city: string
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+        }[]
+      }
+      claim_first_admin: { Args: never; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
