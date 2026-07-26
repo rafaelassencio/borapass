@@ -9,38 +9,266 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as RoteirosRouteImport } from './routes/roteiros'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as MapaRouteImport } from './routes/mapa'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as FavoritosRouteImport } from './routes/favoritos'
+import { Route as ExplorarRouteImport } from './routes/explorar'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PasseiosIndexRouteImport } from './routes/passeios.index'
+import { Route as HospedagensIndexRouteImport } from './routes/hospedagens.index'
+import { Route as EventosIndexRouteImport } from './routes/eventos.index'
+import { Route as CuponsIndexRouteImport } from './routes/cupons.index'
+import { Route as PasseiosIdRouteImport } from './routes/passeios.$id'
+import { Route as HospedagensIdRouteImport } from './routes/hospedagens.$id'
+import { Route as EventosIdRouteImport } from './routes/eventos.$id'
+import { Route as CuponsIdRouteImport } from './routes/cupons.$id'
 
+const RoteirosRoute = RoteirosRouteImport.update({
+  id: '/roteiros',
+  path: '/roteiros',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MapaRoute = MapaRouteImport.update({
+  id: '/mapa',
+  path: '/mapa',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritosRoute = FavoritosRouteImport.update({
+  id: '/favoritos',
+  path: '/favoritos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExplorarRoute = ExplorarRouteImport.update({
+  id: '/explorar',
+  path: '/explorar',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PasseiosIndexRoute = PasseiosIndexRouteImport.update({
+  id: '/passeios/',
+  path: '/passeios/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HospedagensIndexRoute = HospedagensIndexRouteImport.update({
+  id: '/hospedagens/',
+  path: '/hospedagens/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventosIndexRoute = EventosIndexRouteImport.update({
+  id: '/eventos/',
+  path: '/eventos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuponsIndexRoute = CuponsIndexRouteImport.update({
+  id: '/cupons/',
+  path: '/cupons/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PasseiosIdRoute = PasseiosIdRouteImport.update({
+  id: '/passeios/$id',
+  path: '/passeios/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HospedagensIdRoute = HospedagensIdRouteImport.update({
+  id: '/hospedagens/$id',
+  path: '/hospedagens/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventosIdRoute = EventosIdRouteImport.update({
+  id: '/eventos/$id',
+  path: '/eventos/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuponsIdRoute = CuponsIdRouteImport.update({
+  id: '/cupons/$id',
+  path: '/cupons/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/explorar': typeof ExplorarRoute
+  '/favoritos': typeof FavoritosRoute
+  '/login': typeof LoginRoute
+  '/mapa': typeof MapaRoute
+  '/perfil': typeof PerfilRoute
+  '/roteiros': typeof RoteirosRoute
+  '/cupons/$id': typeof CuponsIdRoute
+  '/eventos/$id': typeof EventosIdRoute
+  '/hospedagens/$id': typeof HospedagensIdRoute
+  '/passeios/$id': typeof PasseiosIdRoute
+  '/cupons/': typeof CuponsIndexRoute
+  '/eventos/': typeof EventosIndexRoute
+  '/hospedagens/': typeof HospedagensIndexRoute
+  '/passeios/': typeof PasseiosIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/explorar': typeof ExplorarRoute
+  '/favoritos': typeof FavoritosRoute
+  '/login': typeof LoginRoute
+  '/mapa': typeof MapaRoute
+  '/perfil': typeof PerfilRoute
+  '/roteiros': typeof RoteirosRoute
+  '/cupons/$id': typeof CuponsIdRoute
+  '/eventos/$id': typeof EventosIdRoute
+  '/hospedagens/$id': typeof HospedagensIdRoute
+  '/passeios/$id': typeof PasseiosIdRoute
+  '/cupons': typeof CuponsIndexRoute
+  '/eventos': typeof EventosIndexRoute
+  '/hospedagens': typeof HospedagensIndexRoute
+  '/passeios': typeof PasseiosIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/explorar': typeof ExplorarRoute
+  '/favoritos': typeof FavoritosRoute
+  '/login': typeof LoginRoute
+  '/mapa': typeof MapaRoute
+  '/perfil': typeof PerfilRoute
+  '/roteiros': typeof RoteirosRoute
+  '/cupons/$id': typeof CuponsIdRoute
+  '/eventos/$id': typeof EventosIdRoute
+  '/hospedagens/$id': typeof HospedagensIdRoute
+  '/passeios/$id': typeof PasseiosIdRoute
+  '/cupons/': typeof CuponsIndexRoute
+  '/eventos/': typeof EventosIndexRoute
+  '/hospedagens/': typeof HospedagensIndexRoute
+  '/passeios/': typeof PasseiosIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/explorar'
+    | '/favoritos'
+    | '/login'
+    | '/mapa'
+    | '/perfil'
+    | '/roteiros'
+    | '/cupons/$id'
+    | '/eventos/$id'
+    | '/hospedagens/$id'
+    | '/passeios/$id'
+    | '/cupons/'
+    | '/eventos/'
+    | '/hospedagens/'
+    | '/passeios/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/explorar'
+    | '/favoritos'
+    | '/login'
+    | '/mapa'
+    | '/perfil'
+    | '/roteiros'
+    | '/cupons/$id'
+    | '/eventos/$id'
+    | '/hospedagens/$id'
+    | '/passeios/$id'
+    | '/cupons'
+    | '/eventos'
+    | '/hospedagens'
+    | '/passeios'
+  id:
+    | '__root__'
+    | '/'
+    | '/explorar'
+    | '/favoritos'
+    | '/login'
+    | '/mapa'
+    | '/perfil'
+    | '/roteiros'
+    | '/cupons/$id'
+    | '/eventos/$id'
+    | '/hospedagens/$id'
+    | '/passeios/$id'
+    | '/cupons/'
+    | '/eventos/'
+    | '/hospedagens/'
+    | '/passeios/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  ExplorarRoute: typeof ExplorarRoute
+  FavoritosRoute: typeof FavoritosRoute
+  LoginRoute: typeof LoginRoute
+  MapaRoute: typeof MapaRoute
+  PerfilRoute: typeof PerfilRoute
+  RoteirosRoute: typeof RoteirosRoute
+  CuponsIdRoute: typeof CuponsIdRoute
+  EventosIdRoute: typeof EventosIdRoute
+  HospedagensIdRoute: typeof HospedagensIdRoute
+  PasseiosIdRoute: typeof PasseiosIdRoute
+  CuponsIndexRoute: typeof CuponsIndexRoute
+  EventosIndexRoute: typeof EventosIndexRoute
+  HospedagensIndexRoute: typeof HospedagensIndexRoute
+  PasseiosIndexRoute: typeof PasseiosIndexRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/roteiros': {
+      id: '/roteiros'
+      path: '/roteiros'
+      fullPath: '/roteiros'
+      preLoaderRoute: typeof RoteirosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/mapa': {
+      id: '/mapa'
+      path: '/mapa'
+      fullPath: '/mapa'
+      preLoaderRoute: typeof MapaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favoritos': {
+      id: '/favoritos'
+      path: '/favoritos'
+      fullPath: '/favoritos'
+      preLoaderRoute: typeof FavoritosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explorar': {
+      id: '/explorar'
+      path: '/explorar'
+      fullPath: '/explorar'
+      preLoaderRoute: typeof ExplorarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +276,82 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/passeios/': {
+      id: '/passeios/'
+      path: '/passeios'
+      fullPath: '/passeios/'
+      preLoaderRoute: typeof PasseiosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospedagens/': {
+      id: '/hospedagens/'
+      path: '/hospedagens'
+      fullPath: '/hospedagens/'
+      preLoaderRoute: typeof HospedagensIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eventos/': {
+      id: '/eventos/'
+      path: '/eventos'
+      fullPath: '/eventos/'
+      preLoaderRoute: typeof EventosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cupons/': {
+      id: '/cupons/'
+      path: '/cupons'
+      fullPath: '/cupons/'
+      preLoaderRoute: typeof CuponsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/passeios/$id': {
+      id: '/passeios/$id'
+      path: '/passeios/$id'
+      fullPath: '/passeios/$id'
+      preLoaderRoute: typeof PasseiosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospedagens/$id': {
+      id: '/hospedagens/$id'
+      path: '/hospedagens/$id'
+      fullPath: '/hospedagens/$id'
+      preLoaderRoute: typeof HospedagensIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eventos/$id': {
+      id: '/eventos/$id'
+      path: '/eventos/$id'
+      fullPath: '/eventos/$id'
+      preLoaderRoute: typeof EventosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cupons/$id': {
+      id: '/cupons/$id'
+      path: '/cupons/$id'
+      fullPath: '/cupons/$id'
+      preLoaderRoute: typeof CuponsIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  ExplorarRoute: ExplorarRoute,
+  FavoritosRoute: FavoritosRoute,
+  LoginRoute: LoginRoute,
+  MapaRoute: MapaRoute,
+  PerfilRoute: PerfilRoute,
+  RoteirosRoute: RoteirosRoute,
+  CuponsIdRoute: CuponsIdRoute,
+  EventosIdRoute: EventosIdRoute,
+  HospedagensIdRoute: HospedagensIdRoute,
+  PasseiosIdRoute: PasseiosIdRoute,
+  CuponsIndexRoute: CuponsIndexRoute,
+  EventosIndexRoute: EventosIndexRoute,
+  HospedagensIndexRoute: HospedagensIndexRoute,
+  PasseiosIndexRoute: PasseiosIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
