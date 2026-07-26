@@ -46,7 +46,7 @@ function Login() {
 
           <div className="grid grid-cols-3 gap-2">
             <SocialBtn label="Google">G</SocialBtn>
-            <SocialBtn label="Apple">&#63334;</SocialBtn>
+            <SocialBtn label="Apple">&#xF8FF;</SocialBtn>
             <SocialBtn label="Facebook">f</SocialBtn>
           </div>
 
