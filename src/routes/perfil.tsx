@@ -1,10 +1,12 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { Bell, Globe, Heart, LogOut, Settings, Ticket, Plane, ChevronRight, Moon, LogIn } from "lucide-react";
+import { Bell, Globe, Heart, LogOut, Settings, Ticket, Plane, ChevronRight, Moon, LogIn, Shield, Store } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { useState } from "react";
 import { useAuth, useProfile } from "@/hooks/use-auth";
+import { useRoles } from "@/hooks/use-roles";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -18,6 +20,8 @@ function Perfil() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const profile = useProfile(user?.id);
+  const { isAdmin, isPartner } = useRoles(user?.id);
+
 
   async function handleLogout() {
     await supabase.auth.signOut();
@@ -76,8 +80,19 @@ function Perfil() {
               }}
             />
           </div>
+        <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
+          {(isPartner || isAdmin) && (
+            <Row icon={<Store className="h-4 w-4 text-primary" />} label="Painel do parceiro" to="/parceiro" />
+          )}
+          {isAdmin && (
+            <Row icon={<Shield className="h-4 w-4 text-accent" />} label="Painel admin" to="/admin" />
+          )}
+          {!isPartner && !isAdmin && user && (
+            <Row icon={<Store className="h-4 w-4" />} label="Quero ser parceiro" to="/parceiro" />
+          )}
           <Row icon={<Settings className="h-4 w-4" />} label="Configurações" />
         </div>
+
 
         {user ? (
           <button
