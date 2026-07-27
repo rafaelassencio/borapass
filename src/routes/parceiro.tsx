@@ -21,9 +21,11 @@ type Listing = {
   image_url: string | null;
   price: number | null;
   city: string | null;
+  city_id: string | null;
   address: string | null;
   discount: string | null;
   active: boolean;
+  status: string;
   owner_id: string;
 };
 
@@ -41,7 +43,7 @@ const listingSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   image_url: z.string().trim().url("URL inválida").max(500).optional().or(z.literal("")),
   price: z.coerce.number().min(0).max(1000000).optional(),
-  city: z.string().trim().max(80).optional(),
+  city_id: z.string().uuid().optional().or(z.literal("")),
   address: z.string().trim().max(200).optional(),
   discount: z.string().trim().max(30).optional(),
 });
