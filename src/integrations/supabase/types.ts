@@ -14,12 +14,46 @@ export type Database = {
   }
   public: {
     Tables: {
+      cities: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          name: string
+          slug: string
+          sort_order: number
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name: string
+          slug: string
+          sort_order?: number
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          name?: string
+          slug?: string
+          sort_order?: number
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       listings: {
         Row: {
           active: boolean
           address: string | null
           category: string
           city: string | null
+          city_id: string | null
           created_at: string
           description: string | null
           discount: string | null
@@ -27,6 +61,9 @@ export type Database = {
           image_url: string | null
           owner_id: string
           price: number | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: string
           title: string
           updated_at: string
         }
@@ -35,6 +72,7 @@ export type Database = {
           address?: string | null
           category: string
           city?: string | null
+          city_id?: string | null
           created_at?: string
           description?: string | null
           discount?: string | null
@@ -42,6 +80,9 @@ export type Database = {
           image_url?: string | null
           owner_id: string
           price?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
           title: string
           updated_at?: string
         }
@@ -50,6 +91,7 @@ export type Database = {
           address?: string | null
           category?: string
           city?: string | null
+          city_id?: string | null
           created_at?: string
           description?: string | null
           discount?: string | null
@@ -57,10 +99,62 @@ export type Database = {
           image_url?: string | null
           owner_id?: string
           price?: number | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: string
           title?: string
           updated_at?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "listings_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      notifications: {
+        Row: {
+          body: string | null
+          created_at: string
+          id: string
+          listing_id: string | null
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string | null
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          id?: string
+          listing_id?: string | null
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "notifications_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
@@ -134,6 +228,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_staff: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "partner" | "user" | "support" | "premium"
