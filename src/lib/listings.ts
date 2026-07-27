@@ -26,16 +26,19 @@ export function fallbackImage(cat: ListingCategory): string {
   }
 }
 
-export function useListings(category: ListingCategory) {
+export function useListings(category: ListingCategory, cityId?: string | null) {
   return useQuery({
-    queryKey: ["listings", category],
+    queryKey: ["listings", category, cityId ?? "all"],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("listings")
         .select("*")
         .eq("category", category)
         .eq("active", true)
+        .eq("status", "approved")
         .order("created_at", { ascending: false });
+      if (cityId) q = q.eq("city_id", cityId);
+      const { data, error } = await q;
       if (error) throw error;
       return data as Listing[];
     },
@@ -51,6 +54,7 @@ export function useListing(id: string) {
         .select("*")
         .eq("id", id)
         .eq("active", true)
+        .eq("status", "approved")
         .maybeSingle();
       if (error) throw error;
       return data as Listing | null;
