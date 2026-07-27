@@ -263,7 +263,7 @@ function ListingForm({
       if (!isStaff) payload.status = "pending";
 
       const res = initial
-        ? await supabase.from("listings").update(payload).eq("id", initial.id)
+        ? await supabase.from("listings").update(payload as never).eq("id", initial.id)
         : await supabase.from("listings").insert(payload as never);
       if (res.error) throw res.error;
       toast.success(isStaff ? "Anúncio salvo" : "Enviado para aprovação");
