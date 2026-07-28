@@ -495,3 +495,272 @@ function FilterChip({ active, onClick, children }: { active: boolean; onClick: (
     </button>
   );
 }
+
+function BannersTab() {
+  const { data: banners, isLoading, refetch } = useHomeBanners(true);
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<HomeBanner | null>(null);
+
+  async function toggle(b: HomeBanner) {
+    const { error } = await supabase.from("home_banners").update({ active: !b.active }).eq("id", b.id);
+    if (error) return toast.error(error.message);
+    refetch(); qc.invalidateQueries({ queryKey: ["home_banners"] });
+  }
+  async function remove(b: HomeBanner) {
+    if (!confirm("Excluir banner?")) return;
+    const { error } = await supabase.from("home_banners").delete().eq("id", b.id);
+    if (error) return toast.error(error.message);
+    refetch(); qc.invalidateQueries({ queryKey: ["home_banners"] });
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground">{(banners ?? []).length} banners no fundo da home</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Tamanho recomendado: <b>1080×1920</b> (vertical) ou <b>1600×1200</b>. Imagem até 4 MB, vídeo MP4 até 8 MB.</p>
+        </div>
+        <button onClick={() => { setEditing(null); setShowForm(true); }} className="flex items-center gap-1 rounded-full bg-gradient-brand px-3 py-1.5 text-xs font-bold text-white shadow-brand">
+          <Plus className="h-3.5 w-3.5" /> Novo
+        </button>
+      </div>
+      {isLoading ? <p className="text-sm text-muted-foreground">Carregando...</p> : (banners ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum banner. O fundo padrão será exibido.</p>
+      ) : (
+        <div className="space-y-2">
+          {(banners ?? []).map((b) => (
+            <div key={b.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-soft">
+              {b.media_type === "video" ? (
+                <video src={b.media_url} className="h-16 w-16 rounded-xl object-cover" muted />
+              ) : (
+                <img src={b.media_url} alt="" className="h-16 w-16 rounded-xl object-cover" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{b.title ?? "(sem título)"}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{b.media_type} · ordem {b.sort_order}</p>
+              </div>
+              <button onClick={() => toggle(b)} className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${b.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{b.active ? "Ativo" : "Oculto"}</button>
+              <button onClick={() => { setEditing(b); setShowForm(true); }} className="rounded-lg border border-border p-1.5 text-xs">Editar</button>
+              <button onClick={() => remove(b)} className="rounded-lg border border-border p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      {showForm && (
+        <BannerForm
+          initial={editing}
+          onClose={() => setShowForm(false)}
+          onSaved={() => { setShowForm(false); refetch(); qc.invalidateQueries({ queryKey: ["home_banners"] }); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function BannerForm({ initial, onClose, onSaved }: { initial: HomeBanner | null; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    title: initial?.title ?? "",
+    media_url: initial?.media_url ?? "",
+    media_type: (initial?.media_type ?? "image") as "image" | "video",
+    sort_order: initial?.sort_order ?? 0,
+    active: initial?.active ?? true,
+  });
+  const [saving, setSaving] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault(); setSaving(true);
+    const payload = {
+      title: form.title.trim() || null,
+      media_url: form.media_url.trim(),
+      media_type: form.media_type,
+      sort_order: Number(form.sort_order) || 0,
+      active: form.active,
+    };
+    const res = initial
+      ? await supabase.from("home_banners").update(payload).eq("id", initial.id)
+      : await supabase.from("home_banners").insert(payload);
+    setSaving(false);
+    if (res.error) return toast.error(res.error.message);
+    toast.success("Salvo"); onSaved();
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-background p-6 shadow-elevated sm:rounded-3xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">{initial ? "Editar banner" : "Novo banner"}</h2>
+          <button onClick={onClose} className="text-sm text-muted-foreground">Cancelar</button>
+        </div>
+        <p className="mt-1 text-[11px] text-muted-foreground">Recomendado: 1080×1920 (vertical) ou 1600×1200. Imagem ≤ 4 MB · vídeo MP4 ≤ 8 MB.</p>
+        <form onSubmit={submit} className="mt-4 space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Título (opcional)</span>
+            <input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">URL da mídia</span>
+            <input required value={form.media_url} onChange={(e) => setForm({ ...form, media_url: e.target.value })} placeholder="https://..." className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Tipo</span>
+              <select value={form.media_type} onChange={(e) => setForm({ ...form, media_type: e.target.value as "image" | "video" })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                <option value="image">Imagem</option>
+                <option value="video">Vídeo</option>
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Ordem</span>
+              <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+            Ativo
+          </label>
+          <button type="submit" disabled={saving} className="mt-2 w-full rounded-2xl bg-gradient-brand py-3 text-sm font-bold text-white shadow-brand disabled:opacity-60">
+            {saving ? "Salvando..." : "Salvar"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+function HighlightsTab() {
+  const { data: highlights, isLoading, refetch } = useHomeHighlights(null, true);
+  const { data: cities } = useCities(true);
+  const qc = useQueryClient();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState<HomeHighlight | null>(null);
+
+  async function toggle(h: HomeHighlight) {
+    const { error } = await supabase.from("home_highlights").update({ active: !h.active }).eq("id", h.id);
+    if (error) return toast.error(error.message);
+    refetch(); qc.invalidateQueries({ queryKey: ["home_highlights"] });
+  }
+  async function remove(h: HomeHighlight) {
+    if (!confirm("Excluir destaque?")) return;
+    const { error } = await supabase.from("home_highlights").delete().eq("id", h.id);
+    if (error) return toast.error(error.message);
+    refetch(); qc.invalidateQueries({ queryKey: ["home_highlights"] });
+  }
+
+  return (
+    <div>
+      <div className="mb-3 flex items-center justify-between">
+        <div>
+          <p className="text-xs text-muted-foreground">{(highlights ?? []).length} destaques</p>
+          <p className="mt-0.5 text-[11px] text-muted-foreground">Imagem recomendada: <b>1200×675</b> (16:9). Aparece entre a busca e as categorias.</p>
+        </div>
+        <button onClick={() => { setEditing(null); setShowForm(true); }} className="flex items-center gap-1 rounded-full bg-gradient-brand px-3 py-1.5 text-xs font-bold text-white shadow-brand">
+          <Plus className="h-3.5 w-3.5" /> Novo
+        </button>
+      </div>
+      {isLoading ? <p className="text-sm text-muted-foreground">Carregando...</p> : (highlights ?? []).length === 0 ? (
+        <p className="text-sm text-muted-foreground">Nenhum destaque cadastrado.</p>
+      ) : (
+        <div className="space-y-2">
+          {(highlights ?? []).map((h) => (
+            <div key={h.id} className="flex items-center gap-3 rounded-2xl border border-border bg-card p-3 shadow-soft">
+              {h.image_url ? <img src={h.image_url} alt="" className="h-16 w-24 rounded-xl object-cover" /> : <div className="h-16 w-24 rounded-xl bg-gradient-brand" />}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-bold">{h.title}</p>
+                <p className="truncate text-[11px] text-muted-foreground">{h.subtitle ?? "—"}</p>
+              </div>
+              <button onClick={() => toggle(h)} className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${h.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>{h.active ? "Ativo" : "Oculto"}</button>
+              <button onClick={() => { setEditing(h); setShowForm(true); }} className="rounded-lg border border-border p-1.5 text-xs">Editar</button>
+              <button onClick={() => remove(h)} className="rounded-lg border border-border p-1.5 text-destructive hover:bg-destructive/10"><Trash2 className="h-3.5 w-3.5" /></button>
+            </div>
+          ))}
+        </div>
+      )}
+      {showForm && (
+        <HighlightForm
+          initial={editing}
+          cities={cities ?? []}
+          onClose={() => setShowForm(false)}
+          onSaved={() => { setShowForm(false); refetch(); qc.invalidateQueries({ queryKey: ["home_highlights"] }); }}
+        />
+      )}
+    </div>
+  );
+}
+
+function HighlightForm({ initial, cities, onClose, onSaved }: { initial: HomeHighlight | null; cities: City[]; onClose: () => void; onSaved: () => void }) {
+  const [form, setForm] = useState({
+    title: initial?.title ?? "",
+    subtitle: initial?.subtitle ?? "",
+    image_url: initial?.image_url ?? "",
+    link_url: initial?.link_url ?? "",
+    city_id: initial?.city_id ?? "",
+    sort_order: initial?.sort_order ?? 0,
+    active: initial?.active ?? true,
+  });
+  const [saving, setSaving] = useState(false);
+  async function submit(e: React.FormEvent) {
+    e.preventDefault(); setSaving(true);
+    const payload = {
+      title: form.title.trim(),
+      subtitle: form.subtitle.trim() || null,
+      image_url: form.image_url.trim() || null,
+      link_url: form.link_url.trim() || null,
+      city_id: form.city_id || null,
+      sort_order: Number(form.sort_order) || 0,
+      active: form.active,
+    };
+    const res = initial
+      ? await supabase.from("home_highlights").update(payload).eq("id", initial.id)
+      : await supabase.from("home_highlights").insert(payload);
+    setSaving(false);
+    if (res.error) return toast.error(res.error.message);
+    toast.success("Salvo"); onSaved();
+  }
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 sm:items-center">
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-t-3xl bg-background p-6 shadow-elevated sm:rounded-3xl">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-bold">{initial ? "Editar destaque" : "Novo destaque"}</h2>
+          <button onClick={onClose} className="text-sm text-muted-foreground">Cancelar</button>
+        </div>
+        <form onSubmit={submit} className="mt-4 space-y-3">
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Título</span>
+            <input required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Subtítulo</span>
+            <input value={form.subtitle} onChange={(e) => setForm({ ...form, subtitle: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">URL da imagem (1200×675)</span>
+            <input value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} placeholder="https://..." className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Link (opcional)</span>
+            <input value={form.link_url} onChange={(e) => setForm({ ...form, link_url: e.target.value })} placeholder="/passeios ou https://..." className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Cidade</span>
+              <select value={form.city_id} onChange={(e) => setForm({ ...form, city_id: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm">
+                <option value="">Todas</option>
+                {cities.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </label>
+            <label className="block">
+              <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">Ordem</span>
+              <input type="number" value={form.sort_order} onChange={(e) => setForm({ ...form, sort_order: Number(e.target.value) })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+            </label>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={form.active} onChange={(e) => setForm({ ...form, active: e.target.checked })} />
+            Ativo
+          </label>
+          <button type="submit" disabled={saving} className="mt-2 w-full rounded-2xl bg-gradient-brand py-3 text-sm font-bold text-white shadow-brand disabled:opacity-60">
+            {saving ? "Salvando..." : "Salvar"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
