@@ -35,7 +35,7 @@ const ROLE_LABEL: Record<AppRole, string> = {
   premium: "Viajante Premium",
 };
 
-type Tab = "users" | "listings" | "approvals" | "cities";
+type Tab = "users" | "listings" | "approvals" | "cities" | "banners" | "highlights";
 
 function AdminPanel() {
   const { user, loading: authLoading } = useAuth();
