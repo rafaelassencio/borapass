@@ -5,8 +5,9 @@ import { useRoles, type AppRole } from "@/hooks/use-roles";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "sonner";
-import { LogIn, ShieldAlert, Shield, Store, User as UserIcon, Trash2, Check, X, Plus, MapPin, Users } from "lucide-react";
+import { LogIn, ShieldAlert, Shield, Store, User as UserIcon, Trash2, Check, X, Plus, MapPin, Users, Image as ImageIcon, Sparkles } from "lucide-react";
 import { useCities, type City } from "@/lib/cities";
+import { useHomeBanners, useHomeHighlights, type HomeBanner, type HomeHighlight } from "@/lib/home-content";
 import { useQueryClient } from "@tanstack/react-query";
 
 export const Route = createFileRoute("/admin")({
