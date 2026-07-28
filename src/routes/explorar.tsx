@@ -111,10 +111,8 @@ function Explorar() {
               return (
                 <Link
                   key={x.id}
-                  // @ts-expect-error dynamic route params typed at call sites
-                  to={r.to}
-                  // @ts-expect-error dynamic route params typed at call sites
-                  params={r.params}
+                  to={r.to as string}
+                  params={r.params as never}
                   className="overflow-hidden rounded-2xl bg-card shadow-soft transition hover:shadow-elevated"
                 >
                   <div className="relative aspect-square w-full overflow-hidden">
