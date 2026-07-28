@@ -5,11 +5,34 @@ import type { Database } from "@/integrations/supabase/types";
 
 export type Notification = Database["public"]["Tables"]["notifications"]["Row"];
 
-export function useNotifications(userId: string | undefined) {
+export function useNotifications(userId: string | undefined, cityId?: string | null) {
   return useQuery({
-    queryKey: ["notifications", userId],
+    queryKey: ["notifications", userId, cityId ?? null],
     enabled: !!userId,
     queryFn: async () => {
+      // When a city is selected, only show alerts whose linked listing is in that city.
+      // Notifications without a listing_id (e.g. system-wide) are always shown.
+      if (cityId) {
+        const [linked, systemwide] = await Promise.all([
+          supabase
+            .from("notifications")
+            .select("*, listings!inner(city_id)")
+            .eq("listings.city_id", cityId)
+            .order("created_at", { ascending: false })
+            .limit(50),
+          supabase
+            .from("notifications")
+            .select("*")
+            .is("listing_id", null)
+            .order("created_at", { ascending: false })
+            .limit(50),
+        ]);
+        if (linked.error) throw linked.error;
+        if (systemwide.error) throw systemwide.error;
+        const merged = [...(linked.data ?? []), ...(systemwide.data ?? [])] as Notification[];
+        merged.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+        return merged.slice(0, 50);
+      }
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
@@ -70,7 +93,7 @@ export function useLivePushNotifications(items: Notification[] | undefined) {
 export function useAutoGenerateAlerts(userId: string | undefined, cityId: string | null | undefined) {
   const qc = useQueryClient();
   useEffect(() => {
-    if (!userId) return;
+    if (!userId || !cityId) return; // only alert for the selected city
     let cancelled = false;
     (async () => {
       const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
