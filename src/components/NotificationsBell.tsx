@@ -13,7 +13,7 @@ export function NotificationsBell() {
   const [open, setOpen] = useState(false);
   const qc = useQueryClient();
   useAutoGenerateAlerts(user?.id, city?.id ?? null);
-  const { data } = useNotifications(user?.id);
+  const { data } = useNotifications(user?.id, city?.id ?? null);
   useLivePushNotifications(data);
   const unread = (data ?? []).filter((n) => !n.read_at).length;
 
