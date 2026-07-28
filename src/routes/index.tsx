@@ -1,10 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { Search, MapPin, Bell, Sparkles, Star, Clock, ArrowRight } from "lucide-react";
+import { Search, Sparkles, Star, Clock, ArrowRight } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { categories, tours, coupons, events, restaurants, hotels, promoBanners } from "@/lib/mock-data";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import heroCity from "@/assets/hero-city.jpg";
+import { CitySelectorButton } from "@/components/CitySelector";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -42,15 +44,11 @@ function Home() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs font-medium uppercase tracking-widest text-white/80">Olá, viajante 👋</p>
-              <div className="mt-1 flex items-center gap-1.5">
-                <MapPin className="h-4 w-4" />
-                <span className="text-sm font-semibold">Rio de Janeiro, RJ</span>
+              <div className="mt-1">
+                <CitySelectorButton />
               </div>
             </div>
-            <button aria-label="Notificações" className="rounded-full bg-white/15 p-2.5 backdrop-blur transition hover:bg-white/25">
-              <Bell className="h-5 w-5" />
-              <span className="sr-only">Notificações</span>
-            </button>
+            <NotificationsBell />
           </div>
 
           <h1 className="mt-6 text-3xl font-extrabold leading-tight">

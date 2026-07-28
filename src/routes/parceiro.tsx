@@ -1,11 +1,12 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
+import { useCities } from "@/lib/cities";
 import { supabase } from "@/integrations/supabase/client";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Eye, EyeOff, LogIn, ShieldAlert } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, LogIn, ShieldAlert, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { z } from "zod";
 
 export const Route = createFileRoute("/parceiro")({
@@ -21,9 +22,11 @@ type Listing = {
   image_url: string | null;
   price: number | null;
   city: string | null;
+  city_id: string | null;
   address: string | null;
   discount: string | null;
   active: boolean;
+  status: string;
   owner_id: string;
 };
 
@@ -41,27 +44,35 @@ const listingSchema = z.object({
   description: z.string().trim().max(1000).optional(),
   image_url: z.string().trim().url("URL inválida").max(500).optional().or(z.literal("")),
   price: z.coerce.number().min(0).max(1000000).optional(),
-  city: z.string().trim().max(80).optional(),
+  city_id: z.string().uuid().optional().or(z.literal("")),
   address: z.string().trim().max(200).optional(),
   discount: z.string().trim().max(30).optional(),
 });
 
+function StatusBadge({ status }: { status: string }) {
+  if (status === "approved")
+    return <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary"><CheckCircle2 className="h-3 w-3" /> Aprovado</span>;
+  if (status === "rejected")
+    return <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive"><XCircle className="h-3 w-3" /> Rejeitado</span>;
+  return <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600"><Clock className="h-3 w-3" /> Pendente</span>;
+}
+
 function PartnerPanel() {
   const { user, loading: authLoading } = useAuth();
-  const { isPartner, isAdmin, loading: rolesLoading } = useRoles(user?.id);
-  const navigate = useNavigate();
+  const { isPartner, isAdmin, isSupport, loading: rolesLoading } = useRoles(user?.id);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Listing | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  const authorized = isPartner || isAdmin;
+  const isStaff = isAdmin || isSupport;
+  const authorized = isPartner || isStaff;
 
   async function refresh() {
     if (!user) return;
     setLoading(true);
     const q = supabase.from("listings").select("*").order("created_at", { ascending: false });
-    const { data, error } = isAdmin ? await q : await q.eq("owner_id", user.id);
+    const { data, error } = isStaff ? await q : await q.eq("owner_id", user.id);
     if (error) toast.error(error.message);
     setListings((data ?? []) as Listing[]);
     setLoading(false);
@@ -69,7 +80,8 @@ function PartnerPanel() {
 
   useEffect(() => {
     if (user && authorized) refresh();
-  }, [user, authorized, isAdmin]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, authorized, isStaff]);
 
   async function toggleActive(l: Listing) {
     const { error } = await supabase.from("listings").update({ active: !l.active }).eq("id", l.id);
@@ -128,7 +140,7 @@ function PartnerPanel() {
     <AppShell>
       <PageHeader
         title="Painel do Parceiro"
-        subtitle={isAdmin ? "Modo admin — vendo todos os anúncios" : "Gerencie seus anúncios"}
+        subtitle={isStaff ? "Modo staff — vendo todos os anúncios" : "Gerencie seus anúncios (aguardam aprovação)"}
         right={
           <button
             onClick={() => { setEditing(null); setShowForm(true); }}
@@ -163,9 +175,12 @@ function PartnerPanel() {
                       {l.city ?? "—"} {l.price ? `· R$ ${l.price}` : ""} {l.discount ? `· ${l.discount}` : ""}
                     </p>
                   </div>
-                  <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${l.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                    {l.active ? "Ativo" : "Oculto"}
-                  </span>
+                  <div className="flex flex-col items-end gap-1">
+                    <StatusBadge status={l.status} />
+                    <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${l.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                      {l.active ? "Visível" : "Oculto"}
+                    </span>
+                  </div>
                 </div>
                 <div className="mt-2 flex gap-1.5">
                   <button onClick={() => { setEditing(l); setShowForm(true); }} className="rounded-lg border border-border p-1.5 hover:bg-secondary" title="Editar">
@@ -187,6 +202,7 @@ function PartnerPanel() {
       {showForm && (
         <ListingForm
           userId={user.id}
+          isStaff={isStaff}
           initial={editing}
           onClose={() => setShowForm(false)}
           onSaved={() => { setShowForm(false); refresh(); }}
@@ -198,23 +214,26 @@ function PartnerPanel() {
 
 function ListingForm({
   userId,
+  isStaff,
   initial,
   onClose,
   onSaved,
 }: {
   userId: string;
+  isStaff: boolean;
   initial: Listing | null;
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [saving, setSaving] = useState(false);
+  const { data: cities } = useCities();
   const [form, setForm] = useState({
     category: initial?.category ?? "passeio",
     title: initial?.title ?? "",
     description: initial?.description ?? "",
     image_url: initial?.image_url ?? "",
     price: initial?.price?.toString() ?? "",
-    city: initial?.city ?? "",
+    city_id: initial?.city_id ?? "",
     address: initial?.address ?? "",
     discount: initial?.discount ?? "",
   });
@@ -227,22 +246,27 @@ function ListingForm({
         ...form,
         price: form.price === "" ? undefined : form.price,
       });
-      const payload = {
+      const cityName = cities?.find((c) => c.id === parsed.city_id)?.name ?? null;
+      const payload: Record<string, unknown> = {
         owner_id: userId,
         category: parsed.category,
         title: parsed.title,
         description: parsed.description || null,
         image_url: parsed.image_url || null,
         price: parsed.price ?? null,
-        city: parsed.city || null,
+        city_id: parsed.city_id || null,
+        city: cityName,
         address: parsed.address || null,
         discount: parsed.discount || null,
       };
+      // Partners revert their listing to pending on any edit; staff keep status
+      if (!isStaff) payload.status = "pending";
+
       const res = initial
-        ? await supabase.from("listings").update(payload).eq("id", initial.id)
-        : await supabase.from("listings").insert(payload);
+        ? await supabase.from("listings").update(payload as never).eq("id", initial.id)
+        : await supabase.from("listings").insert(payload as never);
       if (res.error) throw res.error;
-      toast.success(initial ? "Anúncio atualizado" : "Anúncio criado");
+      toast.success(isStaff ? "Anúncio salvo" : "Enviado para aprovação");
       onSaved();
     } catch (err) {
       const msg = err instanceof z.ZodError ? err.issues[0].message : err instanceof Error ? err.message : "Erro";
@@ -259,6 +283,11 @@ function ListingForm({
           <h2 className="text-lg font-bold">{initial ? "Editar anúncio" : "Novo anúncio"}</h2>
           <button onClick={onClose} className="text-sm text-muted-foreground">Cancelar</button>
         </div>
+        {!isStaff && (
+          <p className="mt-2 rounded-xl bg-amber-500/10 px-3 py-2 text-[11px] text-amber-700">
+            Todo anúncio criado ou editado é revisado pela equipe antes de aparecer publicamente.
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
           <Field label="Categoria">
             <select value={form.category} onChange={(e) => setForm({ ...form, category: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm">
@@ -283,7 +312,10 @@ function ListingForm({
             </Field>
           </div>
           <Field label="Cidade">
-            <input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
+            <select value={form.city_id} onChange={(e) => setForm({ ...form, city_id: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm">
+              <option value="">Selecione...</option>
+              {(cities ?? []).map((c) => <option key={c.id} value={c.id}>{c.name}{c.state ? ` - ${c.state}` : ""}</option>)}
+            </select>
           </Field>
           <Field label="Endereço">
             <input value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm" />
