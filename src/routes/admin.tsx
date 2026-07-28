@@ -317,8 +317,12 @@ function AdminPanel() {
               ))
             )}
           </div>
-        ) : (
+        ) : tab === "cities" ? (
           <CitiesTab />
+        ) : tab === "banners" ? (
+          <BannersTab />
+        ) : (
+          <HighlightsTab />
         )}
       </div>
     </AppShell>
