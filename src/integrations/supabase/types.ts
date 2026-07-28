@@ -47,6 +47,86 @@ export type Database = {
         }
         Relationships: []
       }
+      home_banners: {
+        Row: {
+          active: boolean
+          created_at: string
+          id: string
+          media_type: string
+          media_url: string
+          sort_order: number
+          title: string | null
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          media_type?: string
+          media_url: string
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          created_at?: string
+          id?: string
+          media_type?: string
+          media_url?: string
+          sort_order?: number
+          title?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      home_highlights: {
+        Row: {
+          active: boolean
+          city_id: string | null
+          created_at: string
+          id: string
+          image_url: string | null
+          link_url: string | null
+          sort_order: number
+          subtitle: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          city_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          sort_order?: number
+          subtitle?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          city_id?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          link_url?: string | null
+          sort_order?: number
+          subtitle?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_highlights_city_id_fkey"
+            columns: ["city_id"]
+            isOneToOne: false
+            referencedRelation: "cities"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           active: boolean
