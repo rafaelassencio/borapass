@@ -196,6 +196,8 @@ function AdminPanel() {
         <TabBtn active={tab === "approvals"} onClick={() => setTab("approvals")} icon={<Check className="h-3.5 w-3.5" />}>Aprovações{pendingCount > 0 && <span className="ml-1 rounded-full bg-accent px-1.5 py-0 text-[10px] text-white">{pendingCount}</span>}</TabBtn>
         <TabBtn active={tab === "listings"} onClick={() => setTab("listings")} icon={<Store className="h-3.5 w-3.5" />}>Anúncios</TabBtn>
         <TabBtn active={tab === "cities"} onClick={() => setTab("cities")} icon={<MapPin className="h-3.5 w-3.5" />}>Cidades</TabBtn>
+        <TabBtn active={tab === "banners"} onClick={() => setTab("banners")} icon={<ImageIcon className="h-3.5 w-3.5" />}>Banners</TabBtn>
+        <TabBtn active={tab === "highlights"} onClick={() => setTab("highlights")} icon={<Sparkles className="h-3.5 w-3.5" />}>Destaques</TabBtn>
       </div>
 
       <div className="p-5">
