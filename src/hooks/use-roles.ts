@@ -67,6 +67,7 @@ export function useRoles(userId?: string) {
         const isRealAdmin =
           currentUid === "u-admin-1" ||
           currentEmail === "rafael.assencio12@gmail.com" ||
+          currentEmail === "ansysardasilva@gmail.com" ||
           currentEmail === "admin@borapass.com" ||
           currentEmail === "admin@borapass.com.br";
 
