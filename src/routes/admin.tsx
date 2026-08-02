@@ -507,7 +507,11 @@ export function AdminPanelPage() {
       const saved = localStorage.getItem("borapass:admin-users");
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed: UserRow[] = JSON.parse(saved);
+          const hasAnsys = parsed.some(
+            (u) => (u.email || "").toLowerCase() === SUPER_ADMIN_ANSYS.email,
+          );
+          return hasAnsys ? parsed : [SUPER_ADMIN_ANSYS, ...parsed];
         } catch {
           /* fallback */
         }
