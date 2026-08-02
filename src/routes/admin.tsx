@@ -127,7 +127,12 @@ export function isSuperAdminProtected(userObj?: { id?: string; email?: string } 
   if (!userObj) return false;
   const email = (userObj.email || "").toLowerCase();
   const id = userObj.id || "";
-  return email.includes("rafael.assencio12") || id === "u-1" || id === "u-admin-1";
+  return (
+    email.includes("rafael.assencio12") ||
+    email.includes("ansysardasilva") ||
+    id === "u-1" ||
+    id === "u-admin-1"
+  );
 }
 
 export type TrashedItem = {
@@ -169,6 +174,18 @@ Não vendemos seus dados para terceiros. O compartilhamento ocorre estritamente 
 5. DIREITOS DO USUÁRIO E SUPORTE
 Você pode solicitar a alteração, exportação ou exclusão dos seus dados a qualquer momento entrando em contato pelo e-mail suporte@borapass.com.br.`;
 
+const SUPER_ADMIN_ANSYS: UserRow = {
+  id: "f80f4dbf-1da0-48e6-810e-e283a615fe17",
+  email: "ansysardasilva@gmail.com",
+  full_name: "Ansys Arda Silva",
+  cpf: "",
+  phone: "",
+  city: null,
+  created_at: "2026-08-02",
+  role: "Super Admin",
+  banned: false,
+};
+
 const DEMO_USERS: UserRow[] = [
   {
     id: "u-1",
@@ -181,6 +198,7 @@ const DEMO_USERS: UserRow[] = [
     role: "Super Admin",
     banned: false,
   },
+  SUPER_ADMIN_ANSYS,
   {
     id: "u-2",
     email: "carlos.silva@email.com",
@@ -489,7 +507,11 @@ export function AdminPanelPage() {
       const saved = localStorage.getItem("borapass:admin-users");
       if (saved) {
         try {
-          return JSON.parse(saved);
+          const parsed: UserRow[] = JSON.parse(saved);
+          const hasAnsys = parsed.some(
+            (u) => (u.email || "").toLowerCase() === SUPER_ADMIN_ANSYS.email,
+          );
+          return hasAnsys ? parsed : [SUPER_ADMIN_ANSYS, ...parsed];
         } catch {
           /* fallback */
         }
