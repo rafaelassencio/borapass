@@ -1,7 +1,7 @@
 @import "tailwindcss" source(none);
 @source "../src";
 @import "tw-animate-css";
-@import "leaflet/dist/leaflet.css";
+@import "maplibre-gl/dist/maplibre-gl.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -39,9 +39,9 @@
   --radius: 1rem;
 
   /* Brand */
-  --brand-blue: oklch(0.72 0.15 235);       /* #0EA5E9 */
+  --brand-blue: oklch(0.72 0.15 235); /* #0EA5E9 */
   --brand-blue-deep: oklch(0.52 0.17 245);
-  --brand-orange: oklch(0.74 0.18 45);      /* #F97316 */
+  --brand-orange: oklch(0.74 0.18 45); /* #F97316 */
   --brand-orange-deep: oklch(0.64 0.19 40);
 
   --background: oklch(0.995 0.003 240);
@@ -65,7 +65,12 @@
   --input: oklch(0.94 0.01 240);
   --ring: var(--brand-blue);
 
-  --gradient-hero: linear-gradient(135deg, oklch(0.72 0.15 235) 0%, oklch(0.62 0.18 250) 50%, oklch(0.74 0.18 45) 100%);
+  --gradient-hero: linear-gradient(
+    135deg,
+    oklch(0.72 0.15 235) 0%,
+    oklch(0.62 0.18 250) 50%,
+    oklch(0.74 0.18 45) 100%
+  );
   --gradient-brand: linear-gradient(120deg, oklch(0.72 0.15 235), oklch(0.74 0.18 45));
   --gradient-sky: linear-gradient(180deg, oklch(0.72 0.15 235), oklch(0.62 0.18 250));
   --gradient-ember: linear-gradient(135deg, oklch(0.78 0.16 55), oklch(0.68 0.2 30));
@@ -110,32 +115,152 @@
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
-  h1, h2, h3, h4 {
+  h1,
+  h2,
+  h3,
+  h4 {
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
 }
 
-@utility bg-gradient-brand { background-image: var(--gradient-brand); }
-@utility bg-gradient-hero { background-image: var(--gradient-hero); }
-@utility bg-gradient-sky { background-image: var(--gradient-sky); }
-@utility bg-gradient-ember { background-image: var(--gradient-ember); }
-@utility bg-gradient-card { background-image: var(--gradient-card); }
-@utility shadow-soft { box-shadow: var(--shadow-soft); }
-@utility shadow-elevated { box-shadow: var(--shadow-elevated); }
-@utility shadow-brand { box-shadow: var(--shadow-brand); }
-@utility shadow-ember { box-shadow: var(--shadow-ember); }
+@utility bg-gradient-brand {
+  background-image: var(--gradient-brand);
+}
+@utility bg-gradient-hero {
+  background-image: var(--gradient-hero);
+}
+@utility bg-gradient-sky {
+  background-image: var(--gradient-sky);
+}
+@utility bg-gradient-ember {
+  background-image: var(--gradient-ember);
+}
+@utility bg-gradient-card {
+  background-image: var(--gradient-card);
+}
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+@utility shadow-elevated {
+  box-shadow: var(--shadow-elevated);
+}
+@utility shadow-brand {
+  box-shadow: var(--shadow-brand);
+}
+@utility shadow-ember {
+  box-shadow: var(--shadow-ember);
+}
 
 @utility scrollbar-hide {
-  &::-webkit-scrollbar { display: none; }
+  &::-webkit-scrollbar {
+    display: none;
+  }
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
 
 @keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
-@utility animate-fade-in-up { animation: fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both; }
+@utility animate-fade-in-up {
+  animation: fade-in-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
 
-.leaflet-container { font-family: inherit; border-radius: 1rem; }
+.leaflet-container {
+  font-family: inherit;
+  border-radius: 1rem;
+}
+
+/* ========================================================= */
+/* MODO CLARO PARA O CONSOLE ADMINISTRATIVO (ADMIN LIGHT MODE) */
+/* ========================================================= */
+.admin-light-mode {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+}
+
+.admin-light-mode aside {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-light-mode aside .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.admin-light-mode aside .bg-slate-950 {
+  background-color: #f1f5f9 !important;
+}
+
+.admin-light-mode header {
+  background-color: rgba(255, 255, 255, 0.95) !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.admin-light-mode main {
+  background-color: #f8fafc !important;
+}
+
+.admin-light-mode .bg-slate-950,
+.admin-light-mode .bg-slate-900 {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-light-mode .bg-slate-900\/60,
+.admin-light-mode .bg-slate-900\/80,
+.admin-light-mode .bg-slate-950\/60,
+.admin-light-mode .bg-slate-950\/80 {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+.admin-light-mode .border-slate-800 {
+  border-color: #e2e8f0 !important;
+}
+
+.admin-light-mode .text-white {
+  color: #0f172a !important;
+}
+
+.admin-light-mode .text-slate-400,
+.admin-light-mode .text-slate-300 {
+  color: #475569 !important;
+}
+
+.admin-light-mode input:not([type="checkbox"]),
+.admin-light-mode select,
+.admin-light-mode textarea {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
+}
+
+.admin-light-mode table {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+}
+
+.admin-light-mode thead {
+  background-color: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+.admin-light-mode tbody tr:hover {
+  background-color: #f8fafc !important;
+}
+
+.admin-light-mode .divide-slate-800\/50 > :not([hidden]) ~ :not([hidden]) {
+  border-color: #e2e8f0 !important;
+}

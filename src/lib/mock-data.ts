@@ -12,15 +12,69 @@ export type Category = {
 };
 
 export const categories: Category[] = [
-  { id: "hospedagens", label: "Hospedagens", icon: "🏨", slug: "hospedagens", gradient: "from-sky-400 to-blue-600" },
-  { id: "cupons", label: "Cupons", icon: "🎟️", slug: "cupons", gradient: "from-orange-400 to-rose-500" },
-  { id: "restaurantes", label: "Restaurantes", icon: "🍽️", slug: "restaurantes", gradient: "from-amber-400 to-orange-600" },
-  { id: "passeios", label: "Passeios", icon: "🎢", slug: "passeios", gradient: "from-emerald-400 to-teal-600" },
-  { id: "compras", label: "Compras", icon: "🛍️", slug: "compras", gradient: "from-pink-400 to-fuchsia-600" },
-  { id: "eventos", label: "Eventos", icon: "📅", slug: "eventos", gradient: "from-violet-400 to-purple-600" },
-  { id: "transporte", label: "Transporte", icon: "🚗", slug: "transporte", gradient: "from-slate-400 to-slate-700" },
-  { id: "roteiros", label: "Roteiros", icon: "🗺️", slug: "roteiros", gradient: "from-cyan-400 to-blue-600" },
-  { id: "favoritos", label: "Favoritos", icon: "⭐", slug: "favoritos", gradient: "from-yellow-400 to-orange-500" },
+  {
+    id: "hospedagens",
+    label: "Hospedagens",
+    icon: "🏨",
+    slug: "hospedagens",
+    gradient: "from-sky-400 to-blue-600",
+  },
+  {
+    id: "cupons",
+    label: "Cupons",
+    icon: "🎟️",
+    slug: "cupons",
+    gradient: "from-orange-400 to-rose-500",
+  },
+  {
+    id: "restaurantes",
+    label: "Restaurantes",
+    icon: "🍽️",
+    slug: "restaurantes",
+    gradient: "from-amber-400 to-orange-600",
+  },
+  {
+    id: "passeios",
+    label: "Passeios",
+    icon: "🎢",
+    slug: "passeios",
+    gradient: "from-emerald-400 to-teal-600",
+  },
+  {
+    id: "compras",
+    label: "Compras",
+    icon: "🛍️",
+    slug: "compras",
+    gradient: "from-pink-400 to-fuchsia-600",
+  },
+  {
+    id: "eventos",
+    label: "Eventos",
+    icon: "📅",
+    slug: "eventos",
+    gradient: "from-violet-400 to-purple-600",
+  },
+  {
+    id: "transporte",
+    label: "Transporte",
+    icon: "🚗",
+    slug: "transporte",
+    gradient: "from-slate-400 to-slate-700",
+  },
+  {
+    id: "roteiros",
+    label: "Roteiros",
+    icon: "🗺️",
+    slug: "roteiros",
+    gradient: "from-cyan-400 to-blue-600",
+  },
+  {
+    id: "favoritos",
+    label: "Favoritos",
+    icon: "⭐",
+    slug: "favoritos",
+    gradient: "from-yellow-400 to-orange-500",
+  },
 ];
 
 export type Tour = {
@@ -57,9 +111,26 @@ export const tours: Tour[] = [
     tags: ["Aventura", "Mais vendido"],
   },
   {
+    id: "tour-gratuito-feira-rio",
+    name: "Caminhada Cultural e Feira Gratuita",
+    description:
+      "Passeio cultural guiado 100% gratuito pela Feira da Glória e Centro Histórico com degustação de frutas tropicais.",
+    image: tour1,
+    rating: 4.9,
+    reviews: 350,
+    price: 0,
+    duration: "2h",
+    address: "Praça da Glória, Rio de Janeiro",
+    lat: -22.9212,
+    lng: -43.1764,
+    gallery: [tour1],
+    tags: ["Grátis", "Cultural"],
+  },
+  {
     id: "trilha-dois-irmaos",
     name: "Trilha Morro Dois Irmãos ao pôr do sol",
-    description: "Caminhada guiada com vista panorâmica das praias do Leblon e Ipanema. Ideal para todos os níveis.",
+    description:
+      "Caminhada guiada com vista panorâmica das praias do Leblon e Ipanema. Ideal para todos os níveis.",
     image: tour1,
     rating: 4.8,
     reviews: 842,
@@ -74,7 +145,8 @@ export const tours: Tour[] = [
   {
     id: "passeio-escuna",
     name: "Passeio de escuna Angra dos Reis",
-    description: "Dia inteiro navegando pelas ilhas paradisíacas de Angra com paradas para banho e almoço a bordo.",
+    description:
+      "Dia inteiro navegando pelas ilhas paradisíacas de Angra com paradas para banho e almoço a bordo.",
     image: tour1,
     rating: 4.7,
     reviews: 512,
@@ -221,9 +293,39 @@ export type Restaurant = {
 };
 
 export const restaurants: Restaurant[] = [
-  { id: "r1", name: "Sabor da Terra", image: restaurant1, cuisine: "Brasileira contemporânea", price: "$$", rating: 4.7, reviews: 512, lat: -22.985, lng: -43.207 },
-  { id: "r2", name: "Trattoria Mare", image: restaurant1, cuisine: "Italiana", price: "$$$", rating: 4.8, reviews: 341, lat: -22.972, lng: -43.183 },
-  { id: "r3", name: "Sushi Nikkei", image: restaurant1, cuisine: "Japonesa", price: "$$$", rating: 4.9, reviews: 728, lat: -22.978, lng: -43.194 },
+  {
+    id: "r1",
+    name: "Sabor da Terra",
+    image: restaurant1,
+    cuisine: "Brasileira contemporânea",
+    price: "$$",
+    rating: 4.7,
+    reviews: 512,
+    lat: -22.985,
+    lng: -43.207,
+  },
+  {
+    id: "r2",
+    name: "Trattoria Mare",
+    image: restaurant1,
+    cuisine: "Italiana",
+    price: "$$$",
+    rating: 4.8,
+    reviews: 341,
+    lat: -22.972,
+    lng: -43.183,
+  },
+  {
+    id: "r3",
+    name: "Sushi Nikkei",
+    image: restaurant1,
+    cuisine: "Japonesa",
+    price: "$$$",
+    rating: 4.9,
+    reviews: 728,
+    lat: -22.978,
+    lng: -43.194,
+  },
 ];
 
 export type EventItem = {
@@ -247,10 +349,54 @@ const iso = (offset: number) => {
 };
 
 export const events: EventItem[] = [
-  { id: "e1", name: "Festival de Verão Copacabana", image: event1, date: iso(0), time: "18:00", location: "Praia de Copacabana", price: 0, category: "Música", lat: -22.9711, lng: -43.1822 },
-  { id: "e2", name: "Feira Gastronômica Ipanema", image: event1, date: iso(1), time: "12:00", location: "Praça General Osório", price: 20, category: "Gastronomia", lat: -22.984, lng: -43.198 },
-  { id: "e3", name: "Show Nacional — Arena Rio", image: event1, date: iso(3), time: "21:00", location: "Arena Rio", price: 180, category: "Show", lat: -22.978, lng: -43.395 },
-  { id: "e4", name: "Cinema ao ar livre", image: event1, date: iso(5), time: "19:30", location: "Parque Lage", price: 0, category: "Cultura", lat: -22.958, lng: -43.212 },
+  {
+    id: "e1",
+    name: "Festival de Verão Copacabana",
+    image: event1,
+    date: iso(0),
+    time: "18:00",
+    location: "Praia de Copacabana",
+    price: 0,
+    category: "Música",
+    lat: -22.9711,
+    lng: -43.1822,
+  },
+  {
+    id: "e2",
+    name: "Feira Gastronômica Ipanema",
+    image: event1,
+    date: iso(1),
+    time: "12:00",
+    location: "Praça General Osório",
+    price: 20,
+    category: "Gastronomia",
+    lat: -22.984,
+    lng: -43.198,
+  },
+  {
+    id: "e3",
+    name: "Show Nacional — Arena Rio",
+    image: event1,
+    date: iso(3),
+    time: "21:00",
+    location: "Arena Rio",
+    price: 180,
+    category: "Show",
+    lat: -22.978,
+    lng: -43.395,
+  },
+  {
+    id: "e4",
+    name: "Cinema ao ar livre",
+    image: event1,
+    date: iso(5),
+    time: "19:30",
+    location: "Parque Lage",
+    price: 0,
+    category: "Cultura",
+    lat: -22.958,
+    lng: -43.212,
+  },
 ];
 
 export type Roteiro = {
@@ -263,15 +409,68 @@ export type Roteiro = {
 };
 
 export const roteiros: Roteiro[] = [
-  { id: "1d", title: "Rio em 1 dia", duration: "1 dia", vibe: "Clássico", image: tour1, description: "Cristo Redentor, Pão de Açúcar e pôr do sol no Arpoador." },
-  { id: "2d", title: "Fim de semana perfeito", duration: "2 dias", vibe: "Família", image: hotel1, description: "Praias, museus e um jantar especial no segundo dia." },
-  { id: "3d", title: "3 dias de aventura", duration: "3 dias", vibe: "Aventura", image: tour1, description: "Trilhas, parapente e mergulho em Arraial do Cabo." },
-  { id: "5d", title: "5 dias gastronômicos", duration: "5 dias", vibe: "Gastronomia", image: restaurant1, description: "Do boteco raiz aos estrelados: um tour de sabores." },
-  { id: "rom", title: "Escape romântico", duration: "3 dias", vibe: "Romântico", image: hotel1, description: "Pousada charme, jantar à luz de velas e passeio de barco privativo." },
+  {
+    id: "1d",
+    title: "Rio em 1 dia",
+    duration: "1 dia",
+    vibe: "Clássico",
+    image: tour1,
+    description: "Cristo Redentor, Pão de Açúcar e pôr do sol no Arpoador.",
+  },
+  {
+    id: "2d",
+    title: "Fim de semana perfeito",
+    duration: "2 dias",
+    vibe: "Família",
+    image: hotel1,
+    description: "Praias, museus e um jantar especial no segundo dia.",
+  },
+  {
+    id: "3d",
+    title: "3 dias de aventura",
+    duration: "3 dias",
+    vibe: "Aventura",
+    image: tour1,
+    description: "Trilhas, parapente e mergulho em Arraial do Cabo.",
+  },
+  {
+    id: "5d",
+    title: "5 dias gastronômicos",
+    duration: "5 dias",
+    vibe: "Gastronomia",
+    image: restaurant1,
+    description: "Do boteco raiz aos estrelados: um tour de sabores.",
+  },
+  {
+    id: "rom",
+    title: "Escape romântico",
+    duration: "3 dias",
+    vibe: "Romântico",
+    image: hotel1,
+    description: "Pousada charme, jantar à luz de velas e passeio de barco privativo.",
+  },
 ];
 
 export const promoBanners = [
-  { id: "b1", title: "Verão sem fim", subtitle: "Até 40% OFF em passeios selecionados", cta: "Ver ofertas", gradient: "bg-gradient-hero" },
-  { id: "b2", title: "Sextou com desconto", subtitle: "Cupons novos toda sexta", cta: "Resgatar agora", gradient: "bg-gradient-ember" },
-  { id: "b3", title: "Roteiros premium", subtitle: "Planejados pelos melhores guias locais", cta: "Explorar", gradient: "bg-gradient-sky" },
+  {
+    id: "b1",
+    title: "Verão sem fim",
+    subtitle: "Até 40% OFF em passeios selecionados",
+    cta: "Ver ofertas",
+    gradient: "bg-gradient-hero",
+  },
+  {
+    id: "b2",
+    title: "Sextou com desconto",
+    subtitle: "Cupons novos toda sexta",
+    cta: "Resgatar agora",
+    gradient: "bg-gradient-ember",
+  },
+  {
+    id: "b3",
+    title: "Roteiros premium",
+    subtitle: "Planejados pelos melhores guias locais",
+    cta: "Explorar",
+    gradient: "bg-gradient-sky",
+  },
 ];

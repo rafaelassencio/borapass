@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 
 const STORAGE_KEY = "borapass:selected-city";
 
-type Selected = { id: string; name: string; state: string | null } | null;
+type Selected = { id: string; name: string; state: string | null; slug?: string | null } | null;
 
 const listeners = new Set<(v: Selected) => void>();
 let current: Selected = null;
