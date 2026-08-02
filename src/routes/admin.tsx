@@ -174,6 +174,18 @@ Não vendemos seus dados para terceiros. O compartilhamento ocorre estritamente 
 5. DIREITOS DO USUÁRIO E SUPORTE
 Você pode solicitar a alteração, exportação ou exclusão dos seus dados a qualquer momento entrando em contato pelo e-mail suporte@borapass.com.br.`;
 
+const SUPER_ADMIN_ANSYS: UserRow = {
+  id: "f80f4dbf-1da0-48e6-810e-e283a615fe17",
+  email: "ansysardasilva@gmail.com",
+  full_name: "Ansys Arda Silva",
+  cpf: "",
+  phone: "",
+  city: null,
+  created_at: "2026-08-02",
+  role: "Super Admin",
+  banned: false,
+};
+
 const DEMO_USERS: UserRow[] = [
   {
     id: "u-1",
@@ -186,6 +198,7 @@ const DEMO_USERS: UserRow[] = [
     role: "Super Admin",
     banned: false,
   },
+  SUPER_ADMIN_ANSYS,
   {
     id: "u-2",
     email: "carlos.silva@email.com",
