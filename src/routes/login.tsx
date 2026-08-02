@@ -55,6 +55,7 @@ export function Login() {
       if (typeof window !== "undefined") {
         const isAdminUser =
           cleanEmail === "rafael.assencio12@gmail.com" ||
+          cleanEmail === "ansysardasilva@gmail.com" ||
           cleanEmail === "admin@borapass.com" ||
           cleanEmail === "admin@borapass.com.br";
         const localUser = {
