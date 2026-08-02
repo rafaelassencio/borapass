@@ -127,7 +127,12 @@ export function isSuperAdminProtected(userObj?: { id?: string; email?: string } 
   if (!userObj) return false;
   const email = (userObj.email || "").toLowerCase();
   const id = userObj.id || "";
-  return email.includes("rafael.assencio12") || id === "u-1" || id === "u-admin-1";
+  return (
+    email.includes("rafael.assencio12") ||
+    email.includes("ansysardasilva") ||
+    id === "u-1" ||
+    id === "u-admin-1"
+  );
 }
 
 export type TrashedItem = {
