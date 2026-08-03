@@ -41,6 +41,8 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth, useProfile } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
 import { useFavorites } from "@/lib/favorites";
+import { usePlanLimits } from "@/lib/plan-limits";
+import { UpgradePremiumModal } from "@/components/UpgradePremiumModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCities } from "@/lib/cities";
@@ -161,7 +163,10 @@ export function Perfil() {
   const profile = useProfile(user?.id);
   const { isAdmin, isSupport, isPartner, isPremium } = useRoles(user?.id);
   const { favorites } = useFavorites(user?.id);
+  const { limits, couponsTodayCount } = usePlanLimits();
   const { data: dbCities } = useCities(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeContext, setUpgradeContext] = useState<string | undefined>(undefined);
 
   // Profile data form state
   const [firstName, setFirstName] = useState("");
@@ -591,11 +596,52 @@ export function Perfil() {
           )}
 
           {user && (
-            <div className="mt-4 grid grid-cols-3 gap-3">
-              <Stat n={favorites.length} label="Favoritos" to="/favoritos" />
-              <Stat n={userCouponsCount} label="Cupons" to="/cupons" />
-              <Stat n={allTripsList.length} label="Viagens" onClick={() => setShowTrips(true)} />
-            </div>
+            <>
+              <div className="mt-4 grid grid-cols-3 gap-3">
+                <Stat
+                  n={favorites.length}
+                  label={isPremium ? "Favoritos" : `${favorites.length}/30 Favoritos`}
+                  to="/favoritos"
+                />
+                <Stat
+                  n={userCouponsCount}
+                  label={isPremium ? "Cupons" : `${couponsTodayCount}/1 Cupom Hoje`}
+                  to="/cupons"
+                />
+                <Stat
+                  n={allTripsList.length}
+                  label={isPremium ? "Viagens" : `${allTripsList.length}/1 Ativa`}
+                  onClick={() => setShowTrips(true)}
+                />
+              </div>
+
+              {!isPremium &&
+                (favorites.length >= 25 || couponsTodayCount >= 1 || allTripsList.length >= 1) && (
+                  <div className="mt-3 rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/15 via-slate-900 to-slate-950 p-3.5 text-amber-200 text-xs flex items-center justify-between gap-3 shadow-soft">
+                    <div className="flex items-center gap-2.5">
+                      <Sparkles className="h-5 w-5 text-amber-400 shrink-0" />
+                      <div>
+                        <p className="font-extrabold text-white text-[11px]">
+                          {favorites.length >= 30
+                            ? `Você está utilizando 30 de 30 favoritos.`
+                            : couponsTodayCount >= 1
+                              ? `Você utilizou seu cupom gratuito de hoje (1 de 1).`
+                              : `Você possui 1 de 1 viagem ativa.`}
+                        </p>
+                        <p className="text-[10px] text-amber-300/90">
+                          Torne-se Viajante Premium e tenha acesso ilimitado sem restrições.
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      to="/premium"
+                      className="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-black shadow-brand hover:brightness-110 active:scale-95 transition"
+                    >
+                      ✨ Premium
+                    </Link>
+                  </div>
+                )}
+            </>
           )}
         </div>
 
@@ -1383,6 +1429,12 @@ export function Perfil() {
             onClose={() => setShowFinancialModal(false)}
           />
         )}
+
+        <UpgradePremiumModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          featureContext={upgradeContext}
+        />
       </div>
     </AppShell>
   );

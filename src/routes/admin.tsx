@@ -74,6 +74,8 @@ import {
   GripVertical,
   ArrowLeft,
   ArrowRight,
+  Crown,
+  Receipt,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -1052,6 +1054,215 @@ export function AdminPanelPage() {
                 </ResponsiveContainer>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 1.5 TAB: ASSINANTES (VIAJANTE vs VIAJANTE PREMIUM)        */}
+      {/* ========================================================= */}
+      {activeTab === "subscribers" && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Crown className="h-5 w-5 text-amber-400" /> Gestão de Assinantes & Planos
+              </h3>
+              <p className="text-xs text-slate-400">
+                Acompanhe os usuários dos planos Viajante (Gratuito) e Viajante Premium, histórico
+                de compras, resgates, pagamentos e estornos.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-xl bg-amber-500/20 px-3 py-1.5 text-xs font-bold text-amber-300 border border-amber-500/30">
+                👑 Total Premium: {users.filter((u) => u.role === "premium").length}
+              </span>
+              <span className="rounded-xl bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-300 border border-slate-700">
+                👤 Total Viajante (Gratuito):{" "}
+                {users.filter((u) => u.role === "traveler" || !u.role).length}
+              </span>
+            </div>
+          </div>
+
+          {/* Tabela de Assinantes */}
+          <div className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-elevated">
+            <div className="border-b border-slate-800 bg-slate-900/80 px-6 py-4 flex items-center justify-between">
+              <h4 className="text-sm font-extrabold text-white">Lista de Usuários & Assinaturas</h4>
+              <p className="text-[11px] text-slate-400">Clique para alternar plano em tempo real</p>
+            </div>
+            <div className="divide-y divide-slate-800/80">
+              {users.map((u) => {
+                const isUserPremium = u.role === "premium";
+                return (
+                  <div key={u.id} className="p-4 space-y-3 hover:bg-slate-900/40 transition">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex items-center gap-3">
+                        <div className="grid h-10 w-10 place-items-center rounded-xl bg-slate-800 text-white font-bold text-sm">
+                          {(u.full_name || u.email || "US").slice(0, 2).toUpperCase()}
+                        </div>
+                        <div>
+                          <p className="text-sm font-extrabold text-white flex items-center gap-2">
+                            {u.full_name || u.email}
+                            {isUserPremium ? (
+                              <span className="rounded-full bg-amber-500/20 border border-amber-500/40 px-2.5 py-0.5 text-[10px] font-black uppercase text-amber-300 flex items-center gap-1">
+                                <Crown className="h-3 w-3 fill-amber-300" /> Viajante Premium
+                              </span>
+                            ) : (
+                              <span className="rounded-full bg-slate-800 border border-slate-700 px-2.5 py-0.5 text-[10px] font-bold text-slate-400">
+                                Viajante (Gratuito)
+                              </span>
+                            )}
+                          </p>
+                          <p className="text-xs text-slate-400">{u.email}</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => {
+                            const nextRole = isUserPremium ? "traveler" : "premium";
+                            setUsers((prev) =>
+                              prev.map((usr) =>
+                                usr.id === u.id ? { ...usr, role: nextRole } : usr,
+                              ),
+                            );
+                            toast.success(
+                              `Plano de ${u.full_name || u.email} alterado para ${nextRole === "premium" ? "Viajante Premium ✨" : "Viajante (Gratuito)"}`,
+                            );
+                          }}
+                          className={`rounded-xl px-3 py-1.5 text-xs font-bold transition flex items-center gap-1.5 ${
+                            isUserPremium
+                              ? "bg-slate-800 text-slate-300 hover:bg-slate-700"
+                              : "bg-gradient-to-r from-amber-500 to-amber-600 text-black font-black hover:brightness-110"
+                          }`}
+                        >
+                          <Sparkles className="h-3.5 w-3.5" />
+                          {isUserPremium ? "Reverter para Gratuito" : "Tornar Premium ✨"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Transações & Histórico do Usuário com código aaaammnnnnnn */}
+                    <div className="mt-2 rounded-xl bg-slate-900/90 border border-slate-800/80 p-3 space-y-2">
+                      <p className="text-[11px] font-extrabold uppercase tracking-wider text-slate-400 flex items-center gap-1.5">
+                        <Receipt className="h-3.5 w-3.5 text-sky-400" /> Histórico de Transações,
+                        Compras & Resgates
+                      </p>
+                      <div className="space-y-1.5">
+                        {[
+                          {
+                            code: "202608492015",
+                            date: "2026-08-01 14:30",
+                            title: isUserPremium
+                              ? "Assinatura Plano Viajante Premium (Mensal)"
+                              : "Resgate Cupom 20% OFF Gastronomia",
+                            type: isUserPremium ? "Pagamento Assinatura" : "Resgate Cupom",
+                            amount: isUserPremium ? "R$ 29,90" : "Grátis 🎁",
+                            status: "Concluído",
+                          },
+                          {
+                            code: "202607184920",
+                            date: "2026-07-25 10:15",
+                            title: "Reserva Passeio de Escuna Búzios",
+                            type: "Pagamento Reserva",
+                            amount: "R$ 150,00",
+                            status: "Concluído",
+                          },
+                        ].map((tx, idx) => (
+                          <div
+                            key={idx}
+                            className="flex flex-wrap items-center justify-between rounded-lg bg-slate-950/60 p-2.5 text-xs border border-slate-800/60"
+                          >
+                            <div className="flex items-center gap-3">
+                              <span className="font-mono text-[11px] font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                                #{tx.code}
+                              </span>
+                              <div>
+                                <p className="font-bold text-white">{tx.title}</p>
+                                <p className="text-[10px] text-slate-400">
+                                  {tx.type} • {tx.date}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <span className="font-bold text-emerald-400 block">{tx.amount}</span>
+                              <span className="text-[10px] text-slate-400">{tx.status}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
+      {/* 1.6 TAB: ANÚNCIOS ATIVOS (CUPONS, HOSPEDAGENS, RESTAURANTES, PASSEIOS, ROTEIROS) */}
+      {/* ========================================================= */}
+      {activeTab === "active_listings" && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Sparkles className="h-5 w-5 text-sky-400" /> Anúncios Ativos Publicados
+              </h3>
+              <p className="text-xs text-slate-400">
+                Todos os anúncios aprovados (Cupons, Hospedagens, Restaurantes, Passeios e Roteiros)
+                que estão visíveis no aplicativo.
+              </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {partnerOffers
+              .filter((o) => o.status === "approved")
+              .map((offer) => (
+                <div
+                  key={offer.id}
+                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3 shadow-elevated"
+                >
+                  <div className="relative h-36 w-full rounded-xl overflow-hidden bg-slate-900">
+                    <img
+                      src={
+                        offer.image_url ||
+                        "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800"
+                      }
+                      alt=""
+                      className="h-full w-full object-cover"
+                    />
+                    <span className="absolute top-2 left-2 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase shadow-md">
+                      {offer.category}
+                    </span>
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-white line-clamp-1">
+                      {offer.title}
+                    </h4>
+                    <p className="text-xs text-slate-400">
+                      {offer.partner_name} • {offer.city}
+                    </p>
+                  </div>
+                  <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-800">
+                    <span className="font-extrabold text-emerald-400">
+                      R$ {offer.traveler_price || (offer as any).discount_seal || 0}
+                    </span>
+                    <button
+                      onClick={() => handleToggleListingActive(offer.id, offer.active !== false)}
+                      className={`rounded-xl px-3 py-1 text-[11px] font-bold transition ${
+                        offer.active !== false
+                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                      }`}
+                    >
+                      {offer.active !== false ? "Ativo" : "Pausado"}
+                    </button>
+                  </div>
+                </div>
+              ))}
           </div>
         </div>
       )}

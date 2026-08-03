@@ -22,6 +22,7 @@ import { Route as ManagementRouteImport } from './routes/management'
 import { Route as ParceiroRouteImport } from './routes/parceiro'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanejarRouteImport } from './routes/planejar'
+import { Route as PremiumRouteImport } from './routes/premium'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 import { Route as RoteirosRouteImport } from './routes/roteiros'
 import { Route as SuportePainelRouteImport } from './routes/suporte-painel'
@@ -99,6 +100,11 @@ const PerfilRoute = PerfilRouteImport.update({
 const PlanejarRoute = PlanejarRouteImport.update({
   id: '/planejar',
   path: '/planejar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PremiumRoute = PremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
@@ -181,6 +187,7 @@ export interface FileRoutesByFullPath {
   '/parceiro': typeof ParceiroRoute
   '/perfil': typeof PerfilRoute
   '/planejar': typeof PlanejarRoute
+  '/premium': typeof PremiumRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roteiros': typeof RoteirosRoute
   '/suporte-painel': typeof SuportePainelRoute
@@ -209,6 +216,7 @@ export interface FileRoutesByTo {
   '/parceiro': typeof ParceiroRoute
   '/perfil': typeof PerfilRoute
   '/planejar': typeof PlanejarRoute
+  '/premium': typeof PremiumRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roteiros': typeof RoteirosRoute
   '/suporte-painel': typeof SuportePainelRoute
@@ -238,6 +246,7 @@ export interface FileRoutesById {
   '/parceiro': typeof ParceiroRoute
   '/perfil': typeof PerfilRoute
   '/planejar': typeof PlanejarRoute
+  '/premium': typeof PremiumRoute
   '/reset-password': typeof ResetPasswordRoute
   '/roteiros': typeof RoteirosRoute
   '/suporte-painel': typeof SuportePainelRoute
@@ -268,6 +277,7 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/perfil'
     | '/planejar'
+    | '/premium'
     | '/reset-password'
     | '/roteiros'
     | '/suporte-painel'
@@ -296,6 +306,7 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/perfil'
     | '/planejar'
+    | '/premium'
     | '/reset-password'
     | '/roteiros'
     | '/suporte-painel'
@@ -324,6 +335,7 @@ export interface FileRouteTypes {
     | '/parceiro'
     | '/perfil'
     | '/planejar'
+    | '/premium'
     | '/reset-password'
     | '/roteiros'
     | '/suporte-painel'
@@ -353,6 +365,7 @@ export interface RootRouteChildren {
   ParceiroRoute: typeof ParceiroRoute
   PerfilRoute: typeof PerfilRoute
   PlanejarRoute: typeof PlanejarRoute
+  PremiumRoute: typeof PremiumRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
   RoteirosRoute: typeof RoteirosRoute
   SuportePainelRoute: typeof SuportePainelRoute
@@ -459,6 +472,13 @@ declare module '@tanstack/react-router' {
       path: '/planejar'
       fullPath: '/planejar'
       preLoaderRoute: typeof PlanejarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/premium': {
+      id: '/premium'
+      path: '/premium'
+      fullPath: '/premium'
+      preLoaderRoute: typeof PremiumRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/reset-password': {
@@ -569,6 +589,7 @@ const rootRouteChildren: RootRouteChildren = {
   ParceiroRoute: ParceiroRoute,
   PerfilRoute: PerfilRoute,
   PlanejarRoute: PlanejarRoute,
+  PremiumRoute: PremiumRoute,
   ResetPasswordRoute: ResetPasswordRoute,
   RoteirosRoute: RoteirosRoute,
   SuportePainelRoute: SuportePainelRoute,

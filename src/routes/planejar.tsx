@@ -40,6 +40,9 @@ import {
   events as mockEvents,
 } from "@/lib/mock-data";
 import { useAuth } from "@/hooks/use-auth";
+import { useRoles } from "@/hooks/use-roles";
+import { usePlanLimits } from "@/lib/plan-limits";
+import { UpgradePremiumModal } from "@/components/UpgradePremiumModal";
 import { scheduleTripAlerts } from "@/lib/notifications";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -88,7 +91,11 @@ export type TripPlan = {
 
 export function PlanejarPage() {
   const { user } = useAuth();
+  const { isPremium } = useRoles(user?.id);
+  const { limits } = usePlanLimits();
   const { data: dbCities } = useCities(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeContext, setUpgradeContext] = useState<string | undefined>(undefined);
 
   // Active view: 'list' (Minhas Viagens) or 'wizard' (Criar Nova Viagem)
   const [view, setView] = useState<"list" | "wizard">("wizard");
@@ -1277,6 +1284,12 @@ export function PlanejarPage() {
             )}
           </div>
         )}
+
+        <UpgradePremiumModal
+          isOpen={showUpgradeModal}
+          onClose={() => setShowUpgradeModal(false)}
+          featureContext={upgradeContext}
+        />
       </div>
     </AppShell>
   );

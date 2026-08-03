@@ -29,6 +29,7 @@ import {
   X as XIcon,
   Sun,
   Moon,
+  Crown,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
@@ -37,7 +38,9 @@ import { toast } from "sonner";
 
 export type AdminTab =
   | "dashboard"
+  | "subscribers"
   | "approvals"
+  | "active_listings"
   | "users"
   | "partners"
   | "cities"
@@ -105,10 +108,22 @@ export function AdminLayout({
   }> = [
     { id: "dashboard", label: "Dashboard", icon: <LayoutDashboard className="h-4 w-4" /> },
     {
+      id: "subscribers",
+      label: "Assinantes",
+      icon: <Crown className="h-4 w-4 text-amber-400" />,
+      badge: "Planos",
+    },
+    {
       id: "approvals",
       label: "Aprovação de Ofertas",
       icon: <CheckSquare className="h-4 w-4 text-emerald-400" />,
       badge: "Revisão",
+    },
+    {
+      id: "active_listings",
+      label: "Anúncios Ativos",
+      icon: <Sparkles className="h-4 w-4 text-sky-400" />,
+      badge: "Aprovados",
     },
     { id: "users", label: "Usuários", icon: <Users className="h-4 w-4" /> },
     { id: "partners", label: "Parceiros", icon: <Building2 className="h-4 w-4" /> },
@@ -145,7 +160,9 @@ export function AdminLayout({
 
   const TAB_TO_MODULE: Record<AdminTab, ModuleKey> = {
     dashboard: "dashboard",
+    subscribers: "users",
     approvals: "listings",
+    active_listings: "listings",
     users: "users",
     partners: "partners",
     cities: "categories",

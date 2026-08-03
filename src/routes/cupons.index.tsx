@@ -5,6 +5,10 @@ import { Loader2, Ticket, QrCode, Copy, CheckCircle2, Clock, Sparkles } from "lu
 import { Badge } from "@/components/ui/badge";
 import { useState, useEffect } from "react";
 import { useSelectedCity } from "@/hooks/use-city";
+import { useAuth } from "@/hooks/use-auth";
+import { useRoles } from "@/hooks/use-roles";
+import { usePlanLimits } from "@/lib/plan-limits";
+import { UpgradePremiumModal } from "@/components/UpgradePremiumModal";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/cupons/")({
@@ -25,9 +29,16 @@ type RedeemedItem = {
 };
 
 function CuponsList() {
+  const { user } = useAuth();
+  const { isPremium } = useRoles(user?.id);
+  const { couponsTodayCount } = usePlanLimits();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
   const [city] = useSelectedCity();
   const { data, isLoading } = useListings("cupom", city?.id, city?.name);
-  const list = data ?? [];
+  const rawList = data ?? [];
+  // Filter out exclusive Premium coupons for free users if marked
+  const list = isPremium ? rawList : rawList.filter((c: any) => !c.is_premium_exclusive);
 
   const [activeTab, setActiveTab] = useState<"available" | "my_coupons">("available");
   const [myCoupons, setMyCoupons] = useState<RedeemedItem[]>([]);
@@ -84,6 +95,20 @@ function CuponsList() {
       />
 
       <div className="px-5 pt-4 space-y-4">
+        {!isPremium && (
+          <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-200 flex items-center justify-between gap-2 shadow-soft">
+            <span className="font-semibold text-[11px]">
+              🎟️ <strong>Cupons:</strong> {couponsTodayCount} de 1 utilizado hoje
+            </span>
+            <Link
+              to="/premium"
+              className="rounded-xl bg-amber-500 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-black hover:brightness-110 active:scale-95 transition"
+            >
+              ✨ Premium
+            </Link>
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="flex rounded-2xl bg-secondary p-1 border border-border">
           <button
@@ -354,6 +379,12 @@ function CuponsList() {
           </div>
         </div>
       )}
+
+      <UpgradePremiumModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        featureContext="Cupons Ilimitados"
+      />
     </AppShell>
   );
 }
