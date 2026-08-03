@@ -416,6 +416,7 @@ export function AdminPanelPage() {
   const [customCities, setCustomCities] = useState<CityItem[]>(() => getStoredCities());
   const [showCityModal, setShowCityModal] = useState(false);
   const [editingCity, setEditingCity] = useState<CityItem | null>(null);
+  const [activeCategoryFilter, setActiveCategoryFilter] = useState<string>("all");
 
   // States do Carrossel de Banners Personalizados
   const [carouselBanners, setCarouselBanners] = useState<CarouselBanner[]>(() =>
@@ -1201,29 +1202,100 @@ export function AdminPanelPage() {
       )}
 
       {/* ========================================================= */}
-      {/* 1.6 TAB: ANÚNCIOS ATIVOS (CUPONS, HOSPEDAGENS, RESTAURANTES, PASSEIOS, ROTEIROS) */}
+      {/* 1.6 TAB: ANÚNCIOS ATIVOS (DIVIDIDOS POR CATEGORIAS)        */}
       {/* ========================================================= */}
-      {activeTab === "active_listings" && (
+      {(activeTab === "active_listings" ||
+        activeTab === "coupons" ||
+        activeTab === "hotels" ||
+        activeTab === "restaurants" ||
+        activeTab === "tours" ||
+        activeTab === "events" ||
+        activeTab === "itineraries") && (
         <div className="space-y-6">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-sky-400" /> Anúncios Ativos Publicados
+                <Sparkles className="h-5 w-5 text-sky-400" /> Anúncios Ativos por Categoria
               </h3>
               <p className="text-xs text-slate-400">
-                Todos os anúncios aprovados (Cupons, Hospedagens, Restaurantes, Passeios e Roteiros)
-                que estão visíveis no aplicativo.
+                Todos os anúncios aprovados (Cupons, Hospedagens, Restaurantes, Passeios, Eventos e
+                Roteiros) organizados por categorias.
               </p>
             </div>
+            <button
+              onClick={() => setCmsWizardModal({ isOpen: true, category: "hospedagem" })}
+              className="rounded-xl bg-gradient-brand px-4 py-2 text-xs font-black text-white shadow-brand hover:opacity-95 transition flex items-center gap-1.5"
+            >
+              <Plus className="h-4 w-4" /> Criar Anúncio no CMS
+            </button>
           </div>
 
+          {/* SUB-ABAS / FILTROS DE CATEGORIA */}
+          <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-800/80 pb-3">
+            {[
+              { id: "all", label: "✨ Todas as Categorias" },
+              { id: "cupom", label: "🎟️ Cupons" },
+              { id: "hospedagem", label: "🏨 Hospedagens" },
+              { id: "restaurante", label: "🍽️ Restaurantes" },
+              { id: "passeio", label: "🧭 Passeios" },
+              { id: "evento", label: "📅 Eventos" },
+              { id: "roteiro", label: "🗺️ Roteiros" },
+            ].map((cat) => {
+              const isCatActive =
+                activeCategoryFilter === cat.id ||
+                (activeTab === "coupons" && cat.id === "cupom") ||
+                (activeTab === "hotels" && cat.id === "hospedagem") ||
+                (activeTab === "restaurants" && cat.id === "restaurante") ||
+                (activeTab === "tours" && cat.id === "passeio") ||
+                (activeTab === "events" && cat.id === "evento") ||
+                (activeTab === "itineraries" && cat.id === "roteiro");
+
+              return (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategoryFilter(cat.id)}
+                  className={`rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                    isCatActive
+                      ? "bg-sky-600 text-white shadow-brand"
+                      : "bg-slate-800/80 text-slate-400 hover:text-white hover:bg-slate-800"
+                  }`}
+                >
+                  {cat.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* GRID DE ANÚNCIOS FILTRADOS */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {partnerOffers
-              .filter((o) => o.status === "approved")
+              .filter((o) => {
+                if (o.status !== "approved") return false;
+
+                const effectiveCat =
+                  activeCategoryFilter !== "all"
+                    ? activeCategoryFilter
+                    : activeTab === "coupons"
+                      ? "cupom"
+                      : activeTab === "hotels"
+                        ? "hospedagem"
+                        : activeTab === "restaurants"
+                          ? "restaurante"
+                          : activeTab === "tours"
+                            ? "passeio"
+                            : activeTab === "events"
+                              ? "evento"
+                              : activeTab === "itineraries"
+                                ? "roteiro"
+                                : "all";
+
+                if (effectiveCat === "all") return true;
+                return (o.category || "").toLowerCase() === effectiveCat.toLowerCase();
+              })
               .map((offer) => (
                 <div
                   key={offer.id}
-                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3 shadow-elevated"
+                  className="overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3 shadow-elevated transition hover:border-slate-700"
                 >
                   <div className="relative h-36 w-full rounded-xl overflow-hidden bg-slate-900">
                     <img
@@ -1234,7 +1306,7 @@ export function AdminPanelPage() {
                       alt=""
                       className="h-full w-full object-cover"
                     />
-                    <span className="absolute top-2 left-2 rounded-full bg-emerald-500 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase shadow-md">
+                    <span className="absolute top-2 left-2 rounded-full bg-sky-600 px-2.5 py-0.5 text-[10px] font-black text-white uppercase shadow-md">
                       {offer.category}
                     </span>
                   </div>
@@ -1585,17 +1657,28 @@ export function AdminPanelPage() {
       )}
 
       {/* ========================================================= */}
-      {/* 4. TAB: USUÁRIOS                                          */}
+      {/* 5. TAB: GESTÃO DA EQUIPE & PARCEIROS                      */}
       {/* ========================================================= */}
       {activeTab === "users" && (
         <div className="space-y-6">
+          <div className="rounded-2xl border border-purple-500/30 bg-purple-500/10 p-4 space-y-1">
+            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+              <UsersIcon className="h-4 w-4 text-purple-400" /> Gestão da Equipe & Parceiros
+              Credenciados
+            </h3>
+            <p className="text-xs text-purple-200 opacity-90">
+              Esta aba é exclusiva para Administradores, Equipe de Suporte, Parceiros e SuperAdmin.
+              Clientes e assinantes gerais estão centralizados na aba <strong>Assinantes</strong>.
+            </p>
+          </div>
+
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="relative w-72">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-500" />
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Buscar usuário por nome ou e-mail..."
+                placeholder="Buscar administrador, suporte ou parceiro..."
                 className="w-full rounded-xl bg-slate-950 border border-slate-800 pl-9 pr-4 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-500"
               />
             </div>
@@ -1605,15 +1688,15 @@ export function AdminPanelPage() {
                 <Shield className="h-3.5 w-3.5 text-sky-400" />
                 <span className="text-slate-400">
                   {isAdmin
-                    ? "👑 Perfil Admin: Gestão Total de Usuários"
-                    : "🎧 Perfil Suporte: Leitura e Envio de E-mail de Recuperação"}
+                    ? "👑 Perfil Admin: Gestão Total da Equipe & Parceiros"
+                    : "🎧 Perfil Suporte: Leitura e Gestão"}
                 </span>
               </div>
               <button
-                onClick={() => toast.info("Exportação em CSV em processamento.")}
+                onClick={() => toast.info("Exportação de equipe em CSV em processamento.")}
                 className="rounded-xl bg-slate-800 hover:bg-slate-700 px-4 py-2 text-xs font-bold text-white transition border border-slate-700"
               >
-                📊 Exportar (CSV)
+                📊 Exportar Staff (CSV)
               </button>
             </div>
           </div>
@@ -1622,22 +1705,34 @@ export function AdminPanelPage() {
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="border-b border-slate-800 bg-slate-900/60 uppercase font-bold text-[10px] text-slate-400">
                 <tr>
-                  <th className="px-6 py-4">Usuário</th>
+                  <th className="px-6 py-4">Usuário / Membro</th>
                   <th className="px-6 py-4">E-mail</th>
-                  <th className="px-6 py-4">Cidade onde mora</th>
-                  <th className="px-6 py-4">Papel / Função</th>
+                  <th className="px-6 py-4">Cidade / Atuação</th>
+                  <th className="px-6 py-4">Função / Cargo</th>
                   <th className="px-6 py-4">Status</th>
                   <th className="px-6 py-4 text-right">Ações Permissivas</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {users
-                  .filter(
-                    (u) =>
-                      !search ||
+                  .filter((u) => {
+                    const role = (u.role || "").toLowerCase();
+                    const isSuper = isSuperAdminProtected(u);
+                    const isStaffOrPartner =
+                      isSuper ||
+                      role === "admin" ||
+                      role === "partner" ||
+                      role === "parceiro" ||
+                      role === "suporte" ||
+                      role === "support";
+
+                    if (!isStaffOrPartner) return false;
+                    if (!search) return true;
+                    return (
                       u.full_name?.toLowerCase().includes(search.toLowerCase()) ||
-                      u.email.toLowerCase().includes(search.toLowerCase()),
-                  )
+                      u.email.toLowerCase().includes(search.toLowerCase())
+                    );
+                  })
                   .map((u) => (
                     <tr key={u.id} className="hover:bg-slate-900/40 transition">
                       <td className="px-6 py-4 font-bold text-white flex items-center gap-3">
