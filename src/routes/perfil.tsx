@@ -40,6 +40,7 @@ import { Switch } from "@/components/ui/switch";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useAuth, useProfile } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
+import { useFavorites } from "@/lib/favorites";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useCities } from "@/lib/cities";
@@ -159,6 +160,7 @@ export function Perfil() {
   const { user, loading } = useAuth();
   const profile = useProfile(user?.id);
   const { isAdmin, isSupport, isPartner, isPremium } = useRoles(user?.id);
+  const { favorites } = useFavorites(user?.id);
   const { data: dbCities } = useCities(true);
 
   // Profile data form state
@@ -575,9 +577,9 @@ export function Perfil() {
 
           {user && (
             <div className="mt-4 grid grid-cols-3 gap-3">
-              <Stat n={0} label="Favoritos" />
-              <Stat n={3} label="Cupons" />
-              <Stat n={allTripsList.length} label="Viagens" />
+              <Stat n={favorites.length} label="Favoritos" to="/favoritos" />
+              <Stat n={3} label="Cupons" to="/cupons" />
+              <Stat n={allTripsList.length} label="Viagens" to="/planejar" />
             </div>
           )}
         </div>
@@ -1799,13 +1801,33 @@ function FinancialModal({
   );
 }
 
-function Stat({ n, label }: { n: number; label: string }) {
-  return (
-    <div className="rounded-2xl bg-white/15 p-3 text-center backdrop-blur">
+function Stat({
+  n,
+  label,
+  to,
+  onClick,
+}: {
+  n: number;
+  label: string;
+  to?: string;
+  onClick?: () => void;
+}) {
+  const content = (
+    <div className="rounded-2xl bg-white/15 p-3 text-center backdrop-blur hover:bg-white/25 transition active:scale-95 cursor-pointer shadow-sm">
       <div className="text-xl font-extrabold">{n}</div>
       <div className="text-[11px] uppercase tracking-wide opacity-90">{label}</div>
     </div>
   );
+
+  if (to) return <Link to={to}>{content}</Link>;
+  if (onClick) {
+    return (
+      <button onClick={onClick} className="w-full text-left">
+        {content}
+      </button>
+    );
+  }
+  return content;
 }
 
 function Row({
