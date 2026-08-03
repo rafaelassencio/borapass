@@ -314,6 +314,21 @@ export function Perfil() {
     return list;
   }, [visitedCities]);
 
+  const userCouponsCount = useMemo(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("borapass:redeemed-coupons");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) return parsed.length;
+        } catch {
+          /* fallback */
+        }
+      }
+    }
+    return 3;
+  }, []);
+
   function handleAddTrip(e: React.FormEvent) {
     e.preventDefault();
     if (!newCityName.trim()) return;
@@ -570,7 +585,7 @@ export function Perfil() {
                 </div>
               </div>
               <span className="rounded-full bg-white/20 px-2.5 py-1 text-[10px] font-extrabold text-amber-200">
-                3 cupons salvos
+                {userCouponsCount} {userCouponsCount === 1 ? "cupom salvo" : "cupons salvos"}
               </span>
             </div>
           )}
@@ -578,8 +593,8 @@ export function Perfil() {
           {user && (
             <div className="mt-4 grid grid-cols-3 gap-3">
               <Stat n={favorites.length} label="Favoritos" to="/favoritos" />
-              <Stat n={3} label="Cupons" to="/cupons" />
-              <Stat n={allTripsList.length} label="Viagens" to="/planejar" />
+              <Stat n={userCouponsCount} label="Cupons" to="/cupons" />
+              <Stat n={allTripsList.length} label="Viagens" onClick={() => setShowTrips(true)} />
             </div>
           )}
         </div>
