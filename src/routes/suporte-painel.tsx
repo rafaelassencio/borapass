@@ -52,10 +52,6 @@ export function SupportWorkspacePage() {
     }
   }, [isLoading, user, isStaff, navigate]);
 
-  if (isLoading || !user || !isStaff) {
-    return null;
-  }
-
   // Tickets state stored in localStorage
   const [tickets, setTickets] = useState<SupportTicket[]>(() => {
     if (typeof window !== "undefined") {
@@ -229,6 +225,10 @@ export function SupportWorkspacePage() {
       setAttachmentPreview(ev.target?.result as string);
     };
     reader.readAsDataURL(file);
+  }
+
+  if (isLoading || !user || !isStaff) {
+    return null;
   }
 
   return (

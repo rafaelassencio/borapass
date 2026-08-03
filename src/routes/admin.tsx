@@ -394,9 +394,6 @@ export function AdminPanelPage() {
     }
   }, [isLoading, user, isStaff, navigate]);
 
-  if (isLoading || !user || !isStaff) {
-    return null;
-  }
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [search, setSearch] = useState("");
   const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">(
@@ -888,6 +885,10 @@ export function AdminPanelPage() {
     if (activeListingIds[id] !== undefined) return activeListingIds[id];
     return defaultActive;
   };
+
+  if (isLoading || !user || !isStaff) {
+    return null;
+  }
 
   return (
     <AdminLayout

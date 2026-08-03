@@ -52,9 +52,6 @@ export function ValidarCupomPage() {
     }
   }, [isLoading, user, isAuthorized, navigate]);
 
-  if (isLoading || !user || !isAuthorized) {
-    return null;
-  }
   const [searchCode, setSearchCode] = useState("");
   const [activeCoupon, setActiveCoupon] = useState<RedeemedCoupon | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
@@ -166,6 +163,10 @@ export function ValidarCupomPage() {
     if (filter === "used") return c.status === "used";
     return true;
   });
+
+  if (isLoading || !user || !isAuthorized) {
+    return null;
+  }
 
   return (
     <AppShell>

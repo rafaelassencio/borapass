@@ -144,38 +144,6 @@ function RootComponent() {
     return () => sub.subscription.unsubscribe();
   }, [router, queryClient]);
 
-  // Interceptador global para ocultar e redirecionar rotas administrativas antes do render
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const pathname = window.location.pathname.toLowerCase();
-    const isAdminPath =
-      pathname.startsWith("/admin") ||
-      pathname.startsWith("/dashboard") ||
-      pathname.startsWith("/support") ||
-      pathname.startsWith("/management") ||
-      pathname.startsWith("/corporate") ||
-      pathname.startsWith("/suporte-painel");
-
-    if (!isAdminPath) return;
-
-    let hasLocalAuth = false;
-    try {
-      const saved = localStorage.getItem("borapass:local-session");
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed.email || parsed.id) hasLocalAuth = true;
-      }
-    } catch {
-      /* ignore */
-    }
-
-    supabase.auth.getSession().then(({ data }) => {
-      if (!data?.session && !hasLocalAuth) {
-        window.location.replace("/");
-      }
-    });
-  }, [router]);
-
   return (
     <QueryClientProvider client={queryClient}>
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}

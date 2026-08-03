@@ -63,10 +63,11 @@ export function useRoles(userId?: string) {
           }
         }
 
-        // Superadmin account check (rafael.assencio12@gmail.com ou admin@borapass.com)
+        // Superadmin account check (rafael.assencio12@gmail.com, rafaelassencio@gmail.com, etc.)
         const isRealAdmin =
           currentUid === "u-admin-1" ||
-          currentEmail === "rafael.assencio12@gmail.com" ||
+          currentEmail.includes("rafael.assencio") ||
+          currentEmail.includes("rafaelassencio") ||
           currentEmail === "ansysardasilva@gmail.com" ||
           currentEmail === "admin@borapass.com" ||
           currentEmail === "admin@borapass.com.br";
