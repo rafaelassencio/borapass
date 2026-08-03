@@ -42,8 +42,19 @@ const QUICK_RESPONSES = [
 
 export function SupportWorkspacePage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { isStaff, isAdmin } = useRoles(user?.id);
+  const { user, loading: authLoading } = useAuth();
+  const { isStaff, isAdmin, loading: rolesLoading } = useRoles(user?.id);
+  const isLoading = authLoading || rolesLoading;
+
+  useEffect(() => {
+    if (!isLoading && (!user || !isStaff)) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [isLoading, user, isStaff, navigate]);
+
+  if (isLoading || !user || !isStaff) {
+    return null;
+  }
 
   // Tickets state stored in localStorage
   const [tickets, setTickets] = useState<SupportTicket[]>(() => {
@@ -218,26 +229,6 @@ export function SupportWorkspacePage() {
       setAttachmentPreview(ev.target?.result as string);
     };
     reader.readAsDataURL(file);
-  }
-
-  if (!isStaff) {
-    return (
-      <div className="min-h-screen bg-slate-900 text-white flex items-center justify-center p-6 font-sans">
-        <div className="max-w-md w-full rounded-2xl bg-slate-950 border border-slate-800 p-8 text-center space-y-4 shadow-elevated">
-          <Shield className="h-10 w-10 text-amber-400 mx-auto" />
-          <h2 className="text-xl font-bold">Acesso Restrito ao Suporte</h2>
-          <p className="text-xs text-slate-400">
-            É necessário perfil de Suporte ou Admin para utilizar este painel.
-          </p>
-          <button
-            onClick={() => navigate({ to: "/" })}
-            className="rounded-xl bg-sky-600 px-4 py-2 text-xs font-bold text-white shadow-brand"
-          >
-            Voltar ao Aplicativo
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (

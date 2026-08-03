@@ -384,8 +384,19 @@ const INITIAL_PARTNER_OFFERS: ListingOffer[] = [
 
 export function AdminPanelPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
-  const { isStaff, isAdmin } = useRoles(user?.id);
+  const { user, loading: authLoading } = useAuth();
+  const { isStaff, isAdmin, loading: rolesLoading } = useRoles(user?.id);
+  const isLoading = authLoading || rolesLoading;
+
+  useEffect(() => {
+    if (!isLoading && (!user || !isStaff)) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [isLoading, user, isStaff, navigate]);
+
+  if (isLoading || !user || !isStaff) {
+    return null;
+  }
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [search, setSearch] = useState("");
   const [approvalFilter, setApprovalFilter] = useState<"all" | "pending" | "approved" | "rejected">(
@@ -877,35 +888,6 @@ export function AdminPanelPage() {
     if (activeListingIds[id] !== undefined) return activeListingIds[id];
     return defaultActive;
   };
-
-  // Se não for staff/admin, alerta suave
-  if (!isStaff) {
-    return (
-      <AdminLayout
-        activeTab="dashboard"
-        onTabChange={setActiveTab}
-        title="Acesso Restrito"
-        subtitle="Permissão necessária"
-      >
-        <div className="rounded-2xl border border-slate-800 bg-slate-950 p-12 text-center max-w-md mx-auto space-y-4 shadow-elevated">
-          <div className="grid h-16 w-16 place-items-center rounded-2xl bg-amber-500/10 text-amber-400 mx-auto border border-amber-500/20">
-            <Shield className="h-8 w-8" />
-          </div>
-          <h2 className="text-xl font-bold text-white">Área Exclusiva de Gestores</h2>
-          <p className="text-xs text-slate-400">
-            Você está logado, mas precisa de permissão de Administrador ou Suporte para acessar o
-            console corporativo.
-          </p>
-          <button
-            onClick={() => navigate({ to: "/" })}
-            className="inline-flex items-center justify-center rounded-xl bg-sky-600 px-5 py-2.5 text-xs font-bold text-white shadow-brand hover:bg-sky-500 transition"
-          >
-            Voltar para a Página Inicial
-          </button>
-        </div>
-      </AdminLayout>
-    );
-  }
 
   return (
     <AdminLayout

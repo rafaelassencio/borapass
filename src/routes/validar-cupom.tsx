@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { useState, useEffect } from "react";
 import {
@@ -40,8 +40,21 @@ type RedeemedCoupon = {
 };
 
 export function ValidarCupomPage() {
-  const { user } = useAuth();
-  const { isPartner, isAdmin } = useRoles(user?.id);
+  const navigate = useNavigate();
+  const { user, loading: authLoading } = useAuth();
+  const { isPartner, isAdmin, loading: rolesLoading } = useRoles(user?.id);
+  const isLoading = authLoading || rolesLoading;
+  const isAuthorized = isPartner || isAdmin;
+
+  useEffect(() => {
+    if (!isLoading && (!user || !isAuthorized)) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [isLoading, user, isAuthorized, navigate]);
+
+  if (isLoading || !user || !isAuthorized) {
+    return null;
+  }
   const [searchCode, setSearchCode] = useState("");
   const [activeCoupon, setActiveCoupon] = useState<RedeemedCoupon | null>(null);
   const [searchError, setSearchError] = useState<string | null>(null);
