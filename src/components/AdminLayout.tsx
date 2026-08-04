@@ -31,8 +31,9 @@ import {
   Moon,
   Crown,
 } from "lucide-react";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth, useProfile } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { hasModulePermission, type ModuleKey } from "@/lib/rbac";
 import { toast } from "sonner";
 
@@ -73,6 +74,7 @@ export function AdminLayout({
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const profile = useProfile(user?.id);
   const { simulatedRole, realRoles, setRoleSimulation, isAdmin } = useRoles(user?.id);
   const isRealAdmin = realRoles.includes("admin");
   const [globalSearch, setGlobalSearch] = useState("");
@@ -374,18 +376,27 @@ export function AdminLayout({
               </div>
             )}
 
-            {/* Admin Avatar Profile */}
+            {/* Admin Avatar Profile — dados do perfil do app móvel */}
             <div className="flex items-center gap-3 pl-2 border-l border-slate-800">
-              <div className="relative grid h-9 w-9 place-items-center rounded-xl bg-sky-600 text-white font-bold shadow-md">
-                {user?.email?.charAt(0).toUpperCase() || "A"}
+              <div className="relative shrink-0">
+                <Avatar className="h-9 w-9 rounded-xl shadow-md border-2 border-sky-600/40">
+                  <AvatarImage
+                    src={profile?.avatar_url || undefined}
+                    alt={profile?.full_name || user?.email || "Admin"}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="rounded-xl bg-sky-600 text-white font-bold text-sm">
+                    {(profile?.full_name || user?.email || "A").charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
                 <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-emerald-500 border-2 border-slate-950" />
               </div>
               <div className="hidden md:block min-w-0">
-                <p className="text-xs font-bold text-white truncate max-w-[140px]">
-                  {user?.email?.split("@")[0] || "Administrador"}
+                <p className="text-xs font-bold text-white truncate max-w-[160px]">
+                  {profile?.full_name || user?.email?.split("@")[0] || "Administrador"}
                 </p>
                 <p className="text-[10px] text-slate-400 font-semibold">
-                  {isAdmin ? "Super Admin" : "Gestor"}
+                  {isAdmin ? "👑 Super Admin" : "🛡️ Gestor"}
                 </p>
               </div>
             </div>
