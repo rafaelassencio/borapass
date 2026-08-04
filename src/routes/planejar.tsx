@@ -181,7 +181,7 @@ export function PlanejarPage() {
   // Mini-modal de horário para Compras & Empórios
   const [shoppingTimeModal, setShoppingTimeModal] = useState<{
     open: boolean;
-    shop: { id: string; title: string; address?: string; image_url?: string | null } | null;
+    shop: { id: string; title: string; address?: string | null; image_url?: string | null } | null;
     time: string;
   }>({ open: false, shop: null, time: "10:00" });
 
