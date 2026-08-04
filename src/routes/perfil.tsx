@@ -186,32 +186,100 @@ export function Perfil() {
     }
     return "";
   });
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
-  function handleAvatarFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        if (ev.target?.result) {
-          const newUrl = ev.target.result as string;
-          setAvatarUrl(newUrl);
-          if (typeof window !== "undefined") {
-            localStorage.setItem("borapass:user-avatar", newUrl);
-          }
-          if (user) {
-            supabase.auth.updateUser({
-              data: { avatar_url: newUrl },
-            });
-            supabase.from("profiles").upsert({
-              id: user.id,
-              avatar_url: newUrl,
-              updated_at: new Date().toISOString(),
-            });
-          }
-          toast.success("Foto do perfil atualizada com sucesso!");
+  /** Comprime a imagem para max 600x600 e qualidade 0.82 via Canvas */
+  function compressImageFile(file: File): Promise<Blob> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const url = URL.createObjectURL(file);
+      img.onload = () => {
+        const MAX = 600;
+        let w = img.width;
+        let h = img.height;
+        if (w > MAX || h > MAX) {
+          if (w > h) { h = Math.round((h * MAX) / w); w = MAX; }
+          else { w = Math.round((w * MAX) / h); h = MAX; }
         }
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) { reject(new Error("canvas not supported")); return; }
+        ctx.drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(
+          (blob) => { if (blob) resolve(blob); else reject(new Error("compression failed")); },
+          "image/jpeg",
+          0.82,
+        );
       };
-      reader.readAsDataURL(file);
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error("image load error")); };
+      img.src = url;
+    });
+  }
+
+  async function handleAvatarFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    setUploadingAvatar(true);
+    const toastId = toast.loading("Enviando foto do perfil...");
+
+    try {
+      // 1. Comprime a imagem
+      const blob = await compressImageFile(file);
+
+      let finalUrl: string;
+
+      // 2. Tenta upload no Supabase Storage (bucket "avatars")
+      const fileName = `${user.id}/avatar_${Date.now()}.jpg`;
+      const { error: storageError } = await supabase.storage
+        .from("avatars")
+        .upload(fileName, blob, { upsert: true, contentType: "image/jpeg" });
+
+      if (!storageError) {
+        // 2a. Obtém URL pública
+        const { data: publicData } = supabase.storage.from("avatars").getPublicUrl(fileName);
+        finalUrl = publicData.publicUrl;
+      } else {
+        // 2b. Fallback: base64 comprimido (Storage não configurado)
+        finalUrl = await new Promise<string>((res) => {
+          const reader = new FileReader();
+          reader.onload = (ev) => res(ev.target?.result as string);
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      // 3. Salva na tabela profiles
+      const { error: profileError } = await supabase.from("profiles").upsert(
+        { id: user.id, avatar_url: finalUrl, updated_at: new Date().toISOString() },
+        { onConflict: "id" },
+      );
+
+      if (profileError) {
+        throw new Error(profileError.message);
+      }
+
+      // 4. Atualiza user_metadata no Auth
+      await supabase.auth.updateUser({ data: { avatar_url: finalUrl } });
+
+      // 5. Atualiza estado local e localStorage (para reflexo imediato)
+      setAvatarUrl(finalUrl);
+      if (typeof window !== "undefined") {
+        localStorage.setItem("borapass:user-avatar", finalUrl);
+      }
+
+      toast.dismiss(toastId);
+      toast.success("✅ Foto do perfil atualizada com sucesso!");
+    } catch (err: unknown) {
+      toast.dismiss(toastId);
+      const msg = err instanceof Error ? err.message : "Erro desconhecido";
+      toast.error(`Não foi possível salvar a foto: ${msg}`);
+    } finally {
+      setUploadingAvatar(false);
+      // Limpa o input para permitir re-upload da mesma foto
+      if (avatarInputRef.current) avatarInputRef.current.value = "";
     }
   }
 
@@ -522,7 +590,7 @@ export function Perfil() {
           <div className="flex items-center gap-4">
             <div
               className="relative group cursor-pointer shrink-0"
-              onClick={() => avatarInputRef.current?.click()}
+              onClick={() => !uploadingAvatar && avatarInputRef.current?.click()}
               title="Clique para enviar/alterar sua foto de perfil do computador"
             >
               <Avatar className="h-16 w-16 border-4 border-white/40 shadow-soft transition group-hover:scale-105">
@@ -531,9 +599,18 @@ export function Perfil() {
                 )}
                 <AvatarFallback>{initials}</AvatarFallback>
               </Avatar>
-              <div className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-primary text-white shadow-md border-2 border-white transition group-hover:scale-110">
-                <Camera className="h-3.5 w-3.5" />
-              </div>
+              {uploadingAvatar ? (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/50">
+                  <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                  </svg>
+                </div>
+              ) : (
+                <div className="absolute -bottom-1 -right-1 grid h-6 w-6 place-items-center rounded-full bg-primary text-white shadow-md border-2 border-white transition group-hover:scale-110">
+                  <Camera className="h-3.5 w-3.5" />
+                </div>
+              )}
               <input
                 ref={avatarInputRef}
                 type="file"
@@ -882,10 +959,21 @@ export function Perfil() {
                     <div className="flex-1 space-y-2">
                       <button
                         type="button"
+                        disabled={uploadingAvatar}
                         onClick={() => avatarInputRef.current?.click()}
-                        className="w-full rounded-xl bg-primary/10 hover:bg-primary/20 text-primary px-3 py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-primary/20"
+                        className="w-full rounded-xl bg-primary/10 hover:bg-primary/20 text-primary px-3 py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 border border-primary/20 disabled:opacity-60 disabled:cursor-not-allowed"
                       >
-                        <Camera className="h-4 w-4" /> Enviar Foto do Computador 🖥️
+                        {uploadingAvatar ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                            </svg>
+                            Enviando foto...
+                          </>
+                        ) : (
+                          <><Camera className="h-4 w-4" /> Enviar Foto do Computador 🖥️</>
+                        )}
                       </button>
 
                       <input
@@ -895,6 +983,19 @@ export function Perfil() {
                           setAvatarUrl(e.target.value);
                           if (typeof window !== "undefined") {
                             localStorage.setItem("borapass:user-avatar", e.target.value);
+                          }
+                        }}
+                        onBlur={async (e) => {
+                          const urlVal = e.target.value.trim();
+                          if (urlVal && user && urlVal.startsWith("http")) {
+                            const { error } = await supabase.from("profiles").upsert(
+                              { id: user.id, avatar_url: urlVal, updated_at: new Date().toISOString() },
+                              { onConflict: "id" },
+                            );
+                            if (!error) {
+                              await supabase.auth.updateUser({ data: { avatar_url: urlVal } });
+                              toast.success("✅ URL da foto salva no perfil!");
+                            }
                           }
                         }}
                         placeholder="Ou cole a URL da imagem..."
