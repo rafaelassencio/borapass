@@ -9,117 +9,37 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as AdminRouteImport } from './routes/admin'
-import { Route as AjudaRouteImport } from './routes/ajuda'
-import { Route as CheckoutRouteImport } from './routes/checkout'
-import { Route as CorporateRouteImport } from './routes/corporate'
-import { Route as DashboardRouteImport } from './routes/dashboard'
-import { Route as ExplorarRouteImport } from './routes/explorar'
-import { Route as FavoritosRouteImport } from './routes/favoritos'
-import { Route as LoginRouteImport } from './routes/login'
-import { Route as ManagementRouteImport } from './routes/management'
-import { Route as ParceiroRouteImport } from './routes/parceiro'
-import { Route as PerfilRouteImport } from './routes/perfil'
-import { Route as PlanejarRouteImport } from './routes/planejar'
-import { Route as PremiumRouteImport } from './routes/premium'
-import { Route as ResetPasswordRouteImport } from './routes/reset-password'
-import { Route as RoteirosRouteImport } from './routes/roteiros'
-import { Route as SuportePainelRouteImport } from './routes/suporte-painel'
-import { Route as SupportRouteImport } from './routes/support'
 import { Route as ValidarCupomRouteImport } from './routes/validar-cupom'
-import { Route as CuponsIndexRouteImport } from './routes/cupons.index'
-import { Route as CuponsIdRouteImport } from './routes/cupons.$id'
-import { Route as EventosIndexRouteImport } from './routes/eventos.index'
-import { Route as EventosIdRouteImport } from './routes/eventos.$id'
-import { Route as HospedagensIndexRouteImport } from './routes/hospedagens.index'
-import { Route as HospedagensIdRouteImport } from './routes/hospedagens.$id'
+import { Route as SupportRouteImport } from './routes/support'
+import { Route as SuportePainelRouteImport } from './routes/suporte-painel'
+import { Route as RoteirosRouteImport } from './routes/roteiros'
+import { Route as ResetPasswordRouteImport } from './routes/reset-password'
+import { Route as PremiumRouteImport } from './routes/premium'
+import { Route as PlanejarRouteImport } from './routes/planejar'
+import { Route as PerfilRouteImport } from './routes/perfil'
+import { Route as ParceiroRouteImport } from './routes/parceiro'
+import { Route as ManagementRouteImport } from './routes/management'
+import { Route as LoginRouteImport } from './routes/login'
+import { Route as FavoritosRouteImport } from './routes/favoritos'
+import { Route as ExplorarRouteImport } from './routes/explorar'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as CorporateRouteImport } from './routes/corporate'
+import { Route as CheckoutRouteImport } from './routes/checkout'
+import { Route as AjudaRouteImport } from './routes/ajuda'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as IndexRouteImport } from './routes/index'
 import { Route as PasseiosIndexRouteImport } from './routes/passeios.index'
+import { Route as HospedagensIndexRouteImport } from './routes/hospedagens.index'
+import { Route as EventosIndexRouteImport } from './routes/eventos.index'
+import { Route as CuponsIndexRouteImport } from './routes/cupons.index'
 import { Route as PasseiosIdRouteImport } from './routes/passeios.$id'
+import { Route as HospedagensIdRouteImport } from './routes/hospedagens.$id'
+import { Route as EventosIdRouteImport } from './routes/eventos.$id'
+import { Route as CuponsIdRouteImport } from './routes/cupons.$id'
 
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AdminRoute = AdminRouteImport.update({
-  id: '/admin',
-  path: '/admin',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AjudaRoute = AjudaRouteImport.update({
-  id: '/ajuda',
-  path: '/ajuda',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CheckoutRoute = CheckoutRouteImport.update({
-  id: '/checkout',
-  path: '/checkout',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const CorporateRoute = CorporateRouteImport.update({
-  id: '/corporate',
-  path: '/corporate',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ExplorarRoute = ExplorarRouteImport.update({
-  id: '/explorar',
-  path: '/explorar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const FavoritosRoute = FavoritosRouteImport.update({
-  id: '/favoritos',
-  path: '/favoritos',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const LoginRoute = LoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ManagementRoute = ManagementRouteImport.update({
-  id: '/management',
-  path: '/management',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ParceiroRoute = ParceiroRouteImport.update({
-  id: '/parceiro',
-  path: '/parceiro',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PerfilRoute = PerfilRouteImport.update({
-  id: '/perfil',
-  path: '/perfil',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PlanejarRoute = PlanejarRouteImport.update({
-  id: '/planejar',
-  path: '/planejar',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PremiumRoute = PremiumRouteImport.update({
-  id: '/premium',
-  path: '/premium',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ResetPasswordRoute = ResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const RoteirosRoute = RoteirosRouteImport.update({
-  id: '/roteiros',
-  path: '/roteiros',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SuportePainelRoute = SuportePainelRouteImport.update({
-  id: '/suporte-painel',
-  path: '/suporte-painel',
+const ValidarCupomRoute = ValidarCupomRouteImport.update({
+  id: '/validar-cupom',
+  path: '/validar-cupom',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SupportRoute = SupportRouteImport.update({
@@ -127,39 +47,89 @@ const SupportRoute = SupportRouteImport.update({
   path: '/support',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ValidarCupomRoute = ValidarCupomRouteImport.update({
-  id: '/validar-cupom',
-  path: '/validar-cupom',
+const SuportePainelRoute = SuportePainelRouteImport.update({
+  id: '/suporte-painel',
+  path: '/suporte-painel',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CuponsIndexRoute = CuponsIndexRouteImport.update({
-  id: '/cupons/',
-  path: '/cupons/',
+const RoteirosRoute = RoteirosRouteImport.update({
+  id: '/roteiros',
+  path: '/roteiros',
   getParentRoute: () => rootRouteImport,
 } as any)
-const CuponsIdRoute = CuponsIdRouteImport.update({
-  id: '/cupons/$id',
-  path: '/cupons/$id',
+const ResetPasswordRoute = ResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventosIndexRoute = EventosIndexRouteImport.update({
-  id: '/eventos/',
-  path: '/eventos/',
+const PremiumRoute = PremiumRouteImport.update({
+  id: '/premium',
+  path: '/premium',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EventosIdRoute = EventosIdRouteImport.update({
-  id: '/eventos/$id',
-  path: '/eventos/$id',
+const PlanejarRoute = PlanejarRouteImport.update({
+  id: '/planejar',
+  path: '/planejar',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HospedagensIndexRoute = HospedagensIndexRouteImport.update({
-  id: '/hospedagens/',
-  path: '/hospedagens/',
+const PerfilRoute = PerfilRouteImport.update({
+  id: '/perfil',
+  path: '/perfil',
   getParentRoute: () => rootRouteImport,
 } as any)
-const HospedagensIdRoute = HospedagensIdRouteImport.update({
-  id: '/hospedagens/$id',
-  path: '/hospedagens/$id',
+const ParceiroRoute = ParceiroRouteImport.update({
+  id: '/parceiro',
+  path: '/parceiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ManagementRoute = ManagementRouteImport.update({
+  id: '/management',
+  path: '/management',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FavoritosRoute = FavoritosRouteImport.update({
+  id: '/favoritos',
+  path: '/favoritos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ExplorarRoute = ExplorarRouteImport.update({
+  id: '/explorar',
+  path: '/explorar',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardRoute = DashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CorporateRoute = CorporateRouteImport.update({
+  id: '/corporate',
+  path: '/corporate',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CheckoutRoute = CheckoutRouteImport.update({
+  id: '/checkout',
+  path: '/checkout',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AjudaRoute = AjudaRouteImport.update({
+  id: '/ajuda',
+  path: '/ajuda',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PasseiosIndexRoute = PasseiosIndexRouteImport.update({
@@ -167,9 +137,39 @@ const PasseiosIndexRoute = PasseiosIndexRouteImport.update({
   path: '/passeios/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HospedagensIndexRoute = HospedagensIndexRouteImport.update({
+  id: '/hospedagens/',
+  path: '/hospedagens/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventosIndexRoute = EventosIndexRouteImport.update({
+  id: '/eventos/',
+  path: '/eventos/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuponsIndexRoute = CuponsIndexRouteImport.update({
+  id: '/cupons/',
+  path: '/cupons/',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PasseiosIdRoute = PasseiosIdRouteImport.update({
   id: '/passeios/$id',
   path: '/passeios/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HospedagensIdRoute = HospedagensIdRouteImport.update({
+  id: '/hospedagens/$id',
+  path: '/hospedagens/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EventosIdRoute = EventosIdRouteImport.update({
+  id: '/eventos/$id',
+  path: '/eventos/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CuponsIdRoute = CuponsIdRouteImport.update({
+  id: '/cupons/$id',
+  path: '/cupons/$id',
   getParentRoute: () => rootRouteImport,
 } as any)
 
@@ -383,123 +383,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/admin': {
-      id: '/admin'
-      path: '/admin'
-      fullPath: '/admin'
-      preLoaderRoute: typeof AdminRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/ajuda': {
-      id: '/ajuda'
-      path: '/ajuda'
-      fullPath: '/ajuda'
-      preLoaderRoute: typeof AjudaRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/checkout': {
-      id: '/checkout'
-      path: '/checkout'
-      fullPath: '/checkout'
-      preLoaderRoute: typeof CheckoutRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/corporate': {
-      id: '/corporate'
-      path: '/corporate'
-      fullPath: '/corporate'
-      preLoaderRoute: typeof CorporateRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/explorar': {
-      id: '/explorar'
-      path: '/explorar'
-      fullPath: '/explorar'
-      preLoaderRoute: typeof ExplorarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/favoritos': {
-      id: '/favoritos'
-      path: '/favoritos'
-      fullPath: '/favoritos'
-      preLoaderRoute: typeof FavoritosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/login': {
-      id: '/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof LoginRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/management': {
-      id: '/management'
-      path: '/management'
-      fullPath: '/management'
-      preLoaderRoute: typeof ManagementRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/parceiro': {
-      id: '/parceiro'
-      path: '/parceiro'
-      fullPath: '/parceiro'
-      preLoaderRoute: typeof ParceiroRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/perfil': {
-      id: '/perfil'
-      path: '/perfil'
-      fullPath: '/perfil'
-      preLoaderRoute: typeof PerfilRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/planejar': {
-      id: '/planejar'
-      path: '/planejar'
-      fullPath: '/planejar'
-      preLoaderRoute: typeof PlanejarRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/premium': {
-      id: '/premium'
-      path: '/premium'
-      fullPath: '/premium'
-      preLoaderRoute: typeof PremiumRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/reset-password': {
-      id: '/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof ResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/roteiros': {
-      id: '/roteiros'
-      path: '/roteiros'
-      fullPath: '/roteiros'
-      preLoaderRoute: typeof RoteirosRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/suporte-painel': {
-      id: '/suporte-painel'
-      path: '/suporte-painel'
-      fullPath: '/suporte-painel'
-      preLoaderRoute: typeof SuportePainelRouteImport
+    '/validar-cupom': {
+      id: '/validar-cupom'
+      path: '/validar-cupom'
+      fullPath: '/validar-cupom'
+      preLoaderRoute: typeof ValidarCupomRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/support': {
@@ -509,53 +397,123 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SupportRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/validar-cupom': {
-      id: '/validar-cupom'
-      path: '/validar-cupom'
-      fullPath: '/validar-cupom'
-      preLoaderRoute: typeof ValidarCupomRouteImport
+    '/suporte-painel': {
+      id: '/suporte-painel'
+      path: '/suporte-painel'
+      fullPath: '/suporte-painel'
+      preLoaderRoute: typeof SuportePainelRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cupons/': {
-      id: '/cupons/'
-      path: '/cupons'
-      fullPath: '/cupons/'
-      preLoaderRoute: typeof CuponsIndexRouteImport
+    '/roteiros': {
+      id: '/roteiros'
+      path: '/roteiros'
+      fullPath: '/roteiros'
+      preLoaderRoute: typeof RoteirosRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/cupons/$id': {
-      id: '/cupons/$id'
-      path: '/cupons/$id'
-      fullPath: '/cupons/$id'
-      preLoaderRoute: typeof CuponsIdRouteImport
+    '/reset-password': {
+      id: '/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof ResetPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/eventos/': {
-      id: '/eventos/'
-      path: '/eventos'
-      fullPath: '/eventos/'
-      preLoaderRoute: typeof EventosIndexRouteImport
+    '/premium': {
+      id: '/premium'
+      path: '/premium'
+      fullPath: '/premium'
+      preLoaderRoute: typeof PremiumRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/eventos/$id': {
-      id: '/eventos/$id'
-      path: '/eventos/$id'
-      fullPath: '/eventos/$id'
-      preLoaderRoute: typeof EventosIdRouteImport
+    '/planejar': {
+      id: '/planejar'
+      path: '/planejar'
+      fullPath: '/planejar'
+      preLoaderRoute: typeof PlanejarRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hospedagens/': {
-      id: '/hospedagens/'
-      path: '/hospedagens'
-      fullPath: '/hospedagens/'
-      preLoaderRoute: typeof HospedagensIndexRouteImport
+    '/perfil': {
+      id: '/perfil'
+      path: '/perfil'
+      fullPath: '/perfil'
+      preLoaderRoute: typeof PerfilRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/hospedagens/$id': {
-      id: '/hospedagens/$id'
-      path: '/hospedagens/$id'
-      fullPath: '/hospedagens/$id'
-      preLoaderRoute: typeof HospedagensIdRouteImport
+    '/parceiro': {
+      id: '/parceiro'
+      path: '/parceiro'
+      fullPath: '/parceiro'
+      preLoaderRoute: typeof ParceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/management': {
+      id: '/management'
+      path: '/management'
+      fullPath: '/management'
+      preLoaderRoute: typeof ManagementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/favoritos': {
+      id: '/favoritos'
+      path: '/favoritos'
+      fullPath: '/favoritos'
+      preLoaderRoute: typeof FavoritosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/explorar': {
+      id: '/explorar'
+      path: '/explorar'
+      fullPath: '/explorar'
+      preLoaderRoute: typeof ExplorarRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/corporate': {
+      id: '/corporate'
+      path: '/corporate'
+      fullPath: '/corporate'
+      preLoaderRoute: typeof CorporateRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/checkout': {
+      id: '/checkout'
+      path: '/checkout'
+      fullPath: '/checkout'
+      preLoaderRoute: typeof CheckoutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ajuda': {
+      id: '/ajuda'
+      path: '/ajuda'
+      fullPath: '/ajuda'
+      preLoaderRoute: typeof AjudaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/passeios/': {
@@ -565,11 +523,53 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PasseiosIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hospedagens/': {
+      id: '/hospedagens/'
+      path: '/hospedagens'
+      fullPath: '/hospedagens/'
+      preLoaderRoute: typeof HospedagensIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eventos/': {
+      id: '/eventos/'
+      path: '/eventos'
+      fullPath: '/eventos/'
+      preLoaderRoute: typeof EventosIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cupons/': {
+      id: '/cupons/'
+      path: '/cupons'
+      fullPath: '/cupons/'
+      preLoaderRoute: typeof CuponsIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/passeios/$id': {
       id: '/passeios/$id'
       path: '/passeios/$id'
       fullPath: '/passeios/$id'
       preLoaderRoute: typeof PasseiosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/hospedagens/$id': {
+      id: '/hospedagens/$id'
+      path: '/hospedagens/$id'
+      fullPath: '/hospedagens/$id'
+      preLoaderRoute: typeof HospedagensIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/eventos/$id': {
+      id: '/eventos/$id'
+      path: '/eventos/$id'
+      fullPath: '/eventos/$id'
+      preLoaderRoute: typeof EventosIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/cupons/$id': {
+      id: '/cupons/$id'
+      path: '/cupons/$id'
+      fullPath: '/cupons/$id'
+      preLoaderRoute: typeof CuponsIdRouteImport
       parentRoute: typeof rootRouteImport
     }
   }
@@ -607,13 +607,3 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
