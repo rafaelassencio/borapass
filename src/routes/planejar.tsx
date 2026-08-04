@@ -29,7 +29,7 @@ import {
   ShieldCheck,
   Award,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useCities } from "@/lib/cities";
 import { useListings, fallbackImage } from "@/lib/listings";
 import {
@@ -177,6 +177,58 @@ export function PlanejarPage() {
   const [currentDay, setCurrentDay] = useState(1);
   const [customActivityTitle, setCustomActivityTitle] = useState("");
   const [customActivityTime, setCustomActivityTime] = useState("10:00");
+
+  // Mini-modal de horário para Compras & Empórios
+  const [shoppingTimeModal, setShoppingTimeModal] = useState<{
+    open: boolean;
+    shop: { id: string; title: string; address?: string; image_url?: string | null } | null;
+    time: string;
+  }>({ open: false, shop: null, time: "10:00" });
+
+  /** Agenda uma Web Notification 2h antes do horário de visita */
+  const scheduleShoppingNotification = useCallback(
+    (shopTitle: string, visitTime: string, visitDate: string) => {
+      if (typeof window === "undefined" || !("Notification" in window)) return;
+
+      const requestAndSchedule = () => {
+        const [hh, mm] = visitTime.split(":").map(Number);
+        const [y, mo, d] = visitDate.split("-").map(Number);
+        const visitMs = new Date(y, mo - 1, d, hh, mm).getTime();
+        const notifyMs = visitMs - 2 * 60 * 60 * 1000; // 2 horas antes
+        const msFromNow = notifyMs - Date.now();
+
+        if (msFromNow <= 0) {
+          toast.info(`Horário de ${shopTitle} já passou ou é em menos de 2h.`);
+          return;
+        }
+
+        setTimeout(() => {
+          if (Notification.permission === "granted") {
+            new Notification("🛍️ Hora de ir às compras!", {
+              body: `Em 2 horas você vai visitar: ${shopTitle}. Prepare-se! 🕐`,
+              icon: "/favicon.ico",
+            });
+          }
+        }, msFromNow);
+
+        toast.success(
+          `✅ Lembrete agendado! Você será notificado 2h antes da visita a ${shopTitle}.`,
+        );
+      };
+
+      if (Notification.permission === "granted") {
+        requestAndSchedule();
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then((perm) => {
+          if (perm === "granted") requestAndSchedule();
+          else toast.info("Permissão de notificação negada.");
+        });
+      } else {
+        toast.warning("Notificações bloqueadas no navegador.");
+      }
+    },
+    [],
+  );
 
   // Fetch real listings for selected city
   const { data: dbTours } = useListings("passeio", cityId);
@@ -524,7 +576,7 @@ export function PlanejarPage() {
                 { step: 1, label: "Destino" },
                 { step: 2, label: "Hospedagem" },
                 { step: 3, label: "Experiências" },
-                { step: 4, label: "Cupons & Compras" },
+                { step: 4, label: "Cupons & Descontos" },
                 { step: 5, label: "Convites" },
                 { step: 6, label: "Resumo" },
               ].map(({ step, label }) => {
@@ -909,6 +961,52 @@ export function PlanejarPage() {
                   </div>
                 </div>
 
+                {/* Compras & Empórios — com horário e notificação */}
+                <div className="space-y-3 border-t border-border pt-3">
+                  <h3 className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                    <ShoppingBag className="h-4 w-4 text-amber-500" /> Compras & Empórios
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground">
+                    Adicione lojas e empórios ao seu roteiro. Você poderá definir o horário da visita
+                    e receberá um lembrete 2h antes! 🔔
+                  </p>
+                  <div className="space-y-2.5">
+                    {availableShopping.map((shop) => (
+                      <div
+                        key={shop.id}
+                        className="flex items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 shadow-soft"
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <img
+                            src={shop.image_url || fallbackImage("compras")}
+                            alt=""
+                            className="h-14 w-14 rounded-xl object-cover shrink-0"
+                          />
+                          <div className="min-w-0">
+                            <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
+                              🛍️ Compras
+                            </span>
+                            <h4 className="line-clamp-1 text-xs font-bold text-foreground mt-0.5">
+                              {shop.title}
+                            </h4>
+                            <p className="line-clamp-1 text-[10px] text-muted-foreground">
+                              {shop.address}
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            setShoppingTimeModal({ open: true, shop, time: "10:00" })
+                          }
+                          className="shrink-0 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-brand transition active:scale-95"
+                        >
+                          + Adicionar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="flex gap-2 pt-2">
                   <button
                     onClick={() => setActiveStep(2)}
@@ -987,51 +1085,6 @@ export function PlanejarPage() {
                   </div>
                 </div>
 
-                <div className="space-y-3 border-t border-border pt-3">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
-                    <ShoppingBag className="h-4 w-4 text-amber-500" /> Compras & Empórios
-                  </h3>
-                  <div className="space-y-2.5">
-                    {availableShopping.map((shop) => (
-                      <div
-                        key={shop.id}
-                        className="flex items-center justify-between rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3 shadow-soft"
-                      >
-                        <div className="flex items-center gap-3 min-w-0">
-                          <img
-                            src={shop.image_url || fallbackImage("compras")}
-                            alt=""
-                            className="h-14 w-14 rounded-xl object-cover shrink-0"
-                          />
-                          <div className="min-w-0">
-                            <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-500/10 px-1.5 py-0.5 rounded">
-                              🛍️ Compras
-                            </span>
-                            <h4 className="line-clamp-1 text-xs font-bold text-foreground mt-0.5">
-                              {shop.title}
-                            </h4>
-                            <p className="line-clamp-1 text-[10px] text-muted-foreground">
-                              {shop.address}
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() =>
-                            handleAddActivity({
-                              id: shop.id,
-                              title: shop.title,
-                              category: "compras",
-                              discount: shop.discount ?? undefined,
-                            })
-                          }
-                          className="shrink-0 rounded-xl bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-brand transition active:scale-95"
-                        >
-                          + Adicionar
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
 
                 <div className="flex gap-2 pt-2">
                   <button
@@ -1285,6 +1338,81 @@ export function PlanejarPage() {
           </div>
         )}
 
+        {/* ===== MINI-MODAL: HORÁRIO DE VISITA COMPRAS & EMPÓRIOS ===== */}
+        {shoppingTimeModal.open && shoppingTimeModal.shop && (
+          <div
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm p-4 sm:items-center"
+            onClick={() => setShoppingTimeModal((s) => ({ ...s, open: false }))}
+          >
+            <div
+              className="w-full max-w-sm rounded-3xl bg-card border border-border p-6 shadow-elevated space-y-4"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center gap-3">
+                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-amber-500/15 text-2xl shrink-0">
+                  🛍️
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-foreground">
+                    {shoppingTimeModal.shop.title}
+                  </h3>
+                  <p className="text-[10px] text-muted-foreground">
+                    Que horas você planeja visitar?
+                  </p>
+                </div>
+              </div>
+
+              {/* Time picker */}
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-2">
+                <label className="text-xs font-bold text-foreground flex items-center gap-1.5">
+                  <Clock className="h-3.5 w-3.5 text-amber-500" /> Horário da visita
+                </label>
+                <input
+                  type="time"
+                  value={shoppingTimeModal.time}
+                  onChange={(e) =>
+                    setShoppingTimeModal((s) => ({ ...s, time: e.target.value }))
+                  }
+                  className="w-full rounded-xl border border-amber-500/40 bg-background px-4 py-3 text-base font-bold text-foreground outline-none focus:ring-2 focus:ring-amber-500"
+                />
+                <p className="text-[10px] text-muted-foreground">
+                  🔔 Você receberá uma notificação <strong>2 horas antes</strong> deste horário no
+                  dia da viagem ({startDate || "data definida"}).
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShoppingTimeModal((s) => ({ ...s, open: false }))}
+                  className="w-1/3 rounded-2xl border border-border py-3 text-xs font-bold text-foreground"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    const shop = shoppingTimeModal.shop!;
+                    const time = shoppingTimeModal.time;
+                    // Adiciona ao roteiro com o horário escolhido
+                    handleAddActivity({
+                      id: shop.id,
+                      title: shop.title,
+                      category: "compras",
+                      time,
+                    });
+                    // Agenda notificação 2h antes
+                    scheduleShoppingNotification(shop.title, time, startDate);
+                    setShoppingTimeModal({ open: false, shop: null, time: "10:00" });
+                  }}
+                  className="flex-1 rounded-2xl bg-amber-600 py-3 text-sm font-bold text-white shadow-brand flex items-center justify-center gap-2 active:scale-95 transition"
+                >
+                  <Bell className="h-4 w-4" /> Adicionar & Agendar Lembrete
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
         <UpgradePremiumModal
           isOpen={showUpgradeModal}
           onClose={() => setShowUpgradeModal(false)}
