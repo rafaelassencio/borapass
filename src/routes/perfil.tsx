@@ -144,6 +144,11 @@ function formatPhone(value: string) {
 export function Perfil() {
   const [dark, setDark] = useState(false);
   const [showTrips, setShowTrips] = useState(false);
+  // Agenda state
+  const [showAgenda, setShowAgenda] = useState(false);
+  const [agendaDate, setAgendaDate] = useState<string | null>(null);
+  const [agendaNewItem, setAgendaNewItem] = useState("");
+  const [agendaNewTime, setAgendaNewTime] = useState("10:00");
   const [selectedTripDetails, setSelectedTripDetails] = useState<TripPlanDetails | null>(null);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showNotifsModal, setShowNotifsModal] = useState(false);
@@ -787,6 +792,170 @@ export function Perfil() {
             onClick={() => setShowTrips(true)}
           />
         </div>
+
+        {/* ===== AGENDA DE VIAGENS ===== */}
+        {(() => {
+          const rawTrips: Array<{
+            id: string; destinationCity: string; startDate: string;
+            daysCount: number; dailySchedule: Record<number, { id: string; title: string; category: string; time?: string }[]>;
+          }> = (() => {
+            try { return JSON.parse(localStorage.getItem("borapass:trip-plans") || "[]"); }
+            catch { return []; }
+          })();
+          const activeTrip = rawTrips[0];
+          if (!activeTrip) return null;
+
+          const [y, mo, d] = activeTrip.startDate.split("-").map(Number);
+          const tripDays = Array.from({ length: activeTrip.daysCount }, (_, i) => {
+            const dt = new Date(y, mo - 1, d + i);
+            return {
+              dayNum: i + 1,
+              date: dt.toISOString().split("T")[0],
+              label: dt.toLocaleDateString("pt-BR", { weekday: "short", day: "2-digit", month: "short" }),
+              items: activeTrip.dailySchedule?.[i + 1] || [],
+            };
+          });
+
+          const selectedDay = tripDays.find(dd => dd.date === agendaDate);
+
+          return (
+            <div className="mt-4">
+              <button
+                onClick={() => setShowAgenda(!showAgenda)}
+                className="w-full flex items-center justify-between rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm font-bold text-foreground hover:bg-primary/10 transition"
+              >
+                <span className="flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" />
+                  📅 Agenda da Viagem — {activeTrip.destinationCity}
+                </span>
+                <span className="text-xs text-muted-foreground">{showAgenda ? "▲ Fechar" : "▼ Ver Agenda"}</span>
+              </button>
+
+              {showAgenda && (
+                <div className="mt-3 rounded-3xl border border-border bg-card p-5 shadow-soft space-y-4">
+                  {/* Calendário de dias da viagem */}
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">
+                      Dias da Viagem — toque para ver programação
+                    </p>
+                    <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                      {tripDays.map((day) => {
+                        const isSelected = agendaDate === day.date;
+                        const today = new Date().toISOString().split("T")[0];
+                        const isToday = day.date === today;
+                        return (
+                          <button
+                            key={day.date}
+                            onClick={() => setAgendaDate(isSelected ? null : day.date)}
+                            className={`shrink-0 flex flex-col items-center gap-0.5 rounded-2xl border px-3 py-2.5 text-center transition ${
+                              isSelected
+                                ? "border-primary bg-primary text-white shadow-brand"
+                                : isToday
+                                  ? "border-amber-500/60 bg-amber-500/10 text-foreground"
+                                  : "border-border bg-secondary text-muted-foreground"
+                            }`}
+                          >
+                            <span className="text-[10px] font-black">{day.label.split(",")[0].toUpperCase()}</span>
+                            <span className="text-base font-extrabold leading-none">{day.label.split(" ")[1]}</span>
+                            <span className="text-[10px] opacity-80">{day.label.split(" ").pop()}</span>
+                            {day.items.length > 0 && (
+                              <span className="mt-1 h-1.5 w-1.5 rounded-full bg-current opacity-60" />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Detalhes do dia selecionado */}
+                  {selectedDay && (
+                    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4 space-y-3">
+                      <p className="text-xs font-extrabold text-foreground">
+                        📌 Dia {selectedDay.dayNum} — {selectedDay.label}
+                      </p>
+                      {selectedDay.items.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground italic">Nenhuma atividade — adicione abaixo!</p>
+                      ) : (
+                        <ul className="space-y-1.5">
+                          {selectedDay.items.map((act) => {
+                            const routeMap: Record<string, string> = {
+                              passeio: "/passeios", evento: "/eventos",
+                              hospedagem: "/hospedagens", cupom: "/cupons",
+                            };
+                            const route = routeMap[act.category];
+                            return (
+                              <li key={act.id} className="flex items-center justify-between text-xs">
+                                <button
+                                  onClick={() => route && (window.location.href = `${route}/${act.id}`)}
+                                  className={`flex items-center gap-1.5 text-left font-semibold ${
+                                    route ? "hover:text-primary underline decoration-dotted" : "cursor-default"
+                                  } text-foreground`}
+                                >
+                                  <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                  {act.time ? `[${act.time}] ` : ""}{act.title}
+                                  {route && <span className="text-[9px] text-primary/60">↗</span>}
+                                </button>
+                                <span className="rounded bg-secondary px-1.5 py-0.5 text-[10px] text-muted-foreground capitalize shrink-0">{act.category}</span>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      )}
+
+                      {/* Formulário para adicionar item na agenda */}
+                      <div className="border-t border-border/60 pt-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">+ Adicionar à Agenda</p>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={agendaNewItem}
+                            onChange={(e) => setAgendaNewItem(e.target.value)}
+                            placeholder="Ex: Visita ao museu, jantar..."
+                            className="flex-1 rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
+                          />
+                          <input
+                            type="time"
+                            value={agendaNewTime}
+                            onChange={(e) => setAgendaNewTime(e.target.value)}
+                            className="rounded-xl border border-border bg-background px-2 py-2 text-xs w-20"
+                          />
+                          <button
+                            disabled={!agendaNewItem.trim()}
+                            onClick={() => {
+                              if (!agendaNewItem.trim()) return;
+                              const newAct = { id: `agenda-${Date.now()}`, title: agendaNewItem.trim(), category: "personalizado", time: agendaNewTime };
+                              try {
+                                const trips = JSON.parse(localStorage.getItem("borapass:trip-plans") || "[]");
+                                if (trips[0]) {
+                                  const dayN = selectedDay.dayNum;
+                                  if (!trips[0].dailySchedule) trips[0].dailySchedule = {};
+                                  if (!trips[0].dailySchedule[dayN]) trips[0].dailySchedule[dayN] = [];
+                                  trips[0].dailySchedule[dayN].push(newAct);
+                                  localStorage.setItem("borapass:trip-plans", JSON.stringify(trips));
+                                  toast.success(`✅ "${newAct.title}" adicionado à agenda do Dia ${dayN}!`);
+                                }
+                              } catch { /* fallback */ }
+                              setAgendaNewItem("");
+                            }}
+                            className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground disabled:opacity-50"
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {!agendaDate && (
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      Viagem salva em <span className="font-bold text-primary">/planejar</span> — itens adicionados aqui aparecem no Resumo.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })()}
 
         <div className="mt-4 overflow-hidden rounded-2xl border border-border bg-card shadow-soft">
           <Row
@@ -1495,20 +1664,35 @@ export function Perfil() {
                             </p>
                           ) : (
                             <ul className="space-y-1.5">
-                              {items.map((act) => (
-                                <li
-                                  key={act.id}
-                                  className="flex items-center justify-between text-xs"
-                                >
-                                  <span className="font-semibold text-foreground">
-                                    {act.time ? `[${act.time}] ` : ""}
-                                    {act.title}
-                                  </span>
-                                  <span className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground capitalize">
-                                    {act.category}
-                                  </span>
-                                </li>
-                              ))}
+                              {items.map((act) => {
+                                const routeMap: Record<string, string> = {
+                                  passeio: "/passeios",
+                                  evento: "/eventos",
+                                  hospedagem: "/hospedagens",
+                                  cupom: "/cupons",
+                                };
+                                const route = routeMap[act.category];
+                                return (
+                                  <li
+                                    key={act.id}
+                                    className="flex items-center justify-between text-xs"
+                                  >
+                                    <button
+                                      onClick={() => route && (window.location.href = `${route}/${act.id}`)}
+                                      className={`font-semibold text-left ${
+                                        route ? "hover:text-primary underline decoration-dotted cursor-pointer" : "cursor-default"
+                                      } text-foreground flex items-center gap-1`}
+                                    >
+                                      {act.time ? `[${act.time}] ` : ""}
+                                      {act.title}
+                                      {route && <span className="text-[9px] text-primary/60">↗</span>}
+                                    </button>
+                                    <span className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground capitalize shrink-0">
+                                      {act.category}
+                                    </span>
+                                  </li>
+                                );
+                              })}
                             </ul>
                           )}
                         </div>

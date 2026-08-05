@@ -65,6 +65,8 @@ export type ActivityItem = {
   price?: number;
   address?: string;
   discount?: string;
+  /** ID do anúncio no banco de dados, para navegação à página do item */
+  listingId?: string;
 };
 
 export type InvitedCompanion = {
@@ -83,6 +85,8 @@ export type TripPlan = {
   hotelName?: string;
   hotelAddress?: string;
   dailySchedule: Record<number, ActivityItem[]>;
+  /** Cupons salvos separadamente para resgate durante a viagem */
+  savedCoupons?: Array<ActivityItem & { redeemed?: boolean }>;
   invitedCompanions?: InvitedCompanion[];
   hasSharedSeal?: boolean;
   initialDiffDaysAtCreation?: number;
@@ -100,6 +104,8 @@ export function PlanejarPage() {
   // Active view: 'list' (Minhas Viagens) or 'wizard' (Criar Nova Viagem)
   const [view, setView] = useState<"list" | "wizard">("wizard");
   const [activeStep, setActiveStep] = useState<1 | 2 | 3 | 4 | 5 | 6>(1);
+  /** Aba ativa no Passo 6 (Resumo): programação ou cupons */
+  const [resumeTab, setResumeTab] = useState<"schedule" | "coupons">("schedule");
 
   // Saved trips in localStorage
   const [savedTrips, setSavedTrips] = useState<TripPlan[]>(() => {
@@ -177,6 +183,8 @@ export function PlanejarPage() {
   const [currentDay, setCurrentDay] = useState(1);
   const [customActivityTitle, setCustomActivityTitle] = useState("");
   const [customActivityTime, setCustomActivityTime] = useState("10:00");
+  /** Cupons salvos para resgatar durante a viagem (separados do dailySchedule) */
+  const [savedCoupons, setSavedCoupons] = useState<Array<ActivityItem & { redeemed?: boolean }>>([]);
 
   // Mini-modal de horário para Compras & Empórios
   const [shoppingTimeModal, setShoppingTimeModal] = useState<{
@@ -404,6 +412,7 @@ export function PlanejarPage() {
       invitedCompanions,
       hasSharedSeal: invitedCompanions.length > 0,
       dailySchedule,
+      savedCoupons,
       initialDiffDaysAtCreation,
       created_at: new Date().toISOString(),
     };
@@ -412,8 +421,33 @@ export function PlanejarPage() {
     setSavedTrips(updated);
     localStorage.setItem("borapass:trip-plans", JSON.stringify(updated));
 
+    // Agenda lembrete diário de cupons se houver cupons salvos
+    if (savedCoupons.length > 0 && typeof window !== "undefined" && "Notification" in window) {
+      const scheduleDailyCouponReminder = () => {
+        const [y, mo, d] = startDate.split("-").map(Number);
+        for (let day = 0; day < daysCount; day++) {
+          const reminderMs = new Date(y, mo - 1, d + day, 9, 0).getTime() - Date.now();
+          if (reminderMs > 0) {
+            setTimeout(() => {
+              if (Notification.permission === "granted") {
+                new Notification(`🏟️ Bora resgatar seus cupons em ${selectedCityName}!`, {
+                  body: `Você tem ${savedCoupons.filter(c => !c.redeemed).length} cupom(ns) para resgatar hoje. Não deixe expirar! 🎉`,
+                  icon: "/favicon.ico",
+                });
+              }
+            }, reminderMs);
+          }
+        }
+      };
+      if (Notification.permission === "granted") {
+        scheduleDailyCouponReminder();
+      } else if (Notification.permission !== "denied") {
+        Notification.requestPermission().then(p => { if (p === "granted") scheduleDailyCouponReminder(); });
+      }
+    }
+
     toast.success(
-      "Roteiro salvo com sucesso! Os alertas de viagem serão acionados automaticamente nas datas e horários corretos.",
+      "Roteiro salvo! Alertas de viagem e lembretes de cupons serão enviados nas datas certas.",
     );
     setView("list");
     setActiveStep(1);
@@ -540,20 +574,34 @@ export function PlanejarPage() {
                               </p>
                             ) : (
                               <ul className="mt-2 space-y-1.5">
-                                {items.map((act) => (
-                                  <li
-                                    key={act.id}
-                                    className="flex items-center justify-between text-xs"
-                                  >
-                                    <span className="font-semibold text-foreground">
-                                      {act.time ? `[${act.time}] ` : ""}
-                                      {act.title}
-                                    </span>
-                                    <span className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground capitalize">
-                                      {act.category}
-                                    </span>
-                                  </li>
-                                ))}
+                                {items.map((act) => {
+                                  const routeMap: Record<string, string> = {
+                                    passeio: "/passeios/$id",
+                                    evento: "/eventos/$id",
+                                    hospedagem: "/hospedagens/$id",
+                                    cupom: "/cupons/$id",
+                                  };
+                                  const route = routeMap[act.category];
+                                  const actId = act.listingId || act.id;
+                                  return (
+                                    <li
+                                      key={act.id}
+                                      className="flex items-center justify-between text-xs"
+                                    >
+                                      <button
+                                        onClick={() => route && (window.location.href = route.replace("$id", actId))}
+                                        className={`font-semibold text-left ${route ? "hover:text-primary underline decoration-dotted cursor-pointer" : "cursor-default"} text-foreground`}
+                                      >
+                                        {act.time ? `[${act.time}] ` : ""}
+                                        {act.title}
+                                        {route && <span className="text-[9px] text-primary/60 ml-0.5">↗</span>}
+                                      </button>
+                                      <span className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground capitalize shrink-0">
+                                        {act.category}
+                                      </span>
+                                    </li>
+                                  );
+                                })}
                               </ul>
                             )}
                           </div>
@@ -1067,19 +1115,39 @@ export function PlanejarPage() {
                             </p>
                           </div>
                         </div>
-                        <button
-                          onClick={() =>
-                            handleAddActivity({
-                              id: cp.id,
-                              title: cp.title,
-                              category: "cupom",
-                              discount: cp.discount ?? undefined,
-                            })
-                          }
-                          className="shrink-0 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-brand transition active:scale-95"
-                        >
-                          + Usar Cupom
-                        </button>
+                        <div className="shrink-0 flex flex-col items-end gap-1">
+                          {savedCoupons.some((sc) => sc.id === cp.id) ? (
+                            <span className="rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-600 dark:text-emerald-400 px-3 py-1.5 text-xs font-bold flex items-center gap-1">
+                              ✓ Salvo
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => {
+                                setSavedCoupons((prev) => [
+                                  ...prev,
+                                  {
+                                    id: cp.id,
+                                    title: cp.title,
+                                    category: "cupom",
+                                    discount: cp.discount ?? undefined,
+                                    listingId: cp.id,
+                                    redeemed: false,
+                                  },
+                                ]);
+                                toast.success(`🎟️ Cupom "${cp.title}" salvo! Resgate durante a visita.`);
+                              }}
+                              className="shrink-0 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-brand transition active:scale-95"
+                            >
+                              🎟️ Salvar na Viagem
+                            </button>
+                          )}
+                          <button
+                            onClick={() => window.location.href = `/cupons/${cp.id}`}
+                            className="text-[10px] text-muted-foreground hover:text-primary underline"
+                          >
+                            Ver detalhes
+                          </button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -1246,57 +1314,175 @@ export function PlanejarPage() {
                   {invitedCompanions.length > 0 && (
                     <div className="pt-2 border-t border-white/20 flex items-center gap-2 text-xs">
                       <Badge className="bg-amber-400 text-slate-950 font-black">
-                        👥✨ Selo de Viagem Compartilhada
+                        👥✨ Viagem Compartilhada
                       </Badge>
                       <span>({invitedCompanions.length} participantes)</span>
                     </div>
                   )}
                 </div>
 
-                {/* Atividades por Dia */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                    Programação Completa por Dia
-                  </h4>
-                  {Array.from({ length: daysCount }, (_, i) => i + 1).map((dayNum) => {
-                    const items = dailySchedule[dayNum] || [];
-                    return (
-                      <div
-                        key={dayNum}
-                        className="rounded-2xl border border-border bg-background p-3.5 space-y-1.5"
-                      >
-                        <p className="text-xs font-extrabold text-foreground">Dia {dayNum}</p>
-                        {items.length === 0 ? (
-                          <p className="text-[11px] text-muted-foreground italic">Livre</p>
-                        ) : (
-                          <ul className="space-y-1">
-                            {items.map((act) => (
-                              <li
-                                key={act.id}
-                                className="text-xs font-medium text-foreground flex items-center justify-between"
-                              >
-                                <span className="flex items-center gap-1.5">
-                                  <span className="h-1.5 w-1.5 rounded-full bg-primary" />
-                                  {act.time ? `[${act.time}] ` : ""}
-                                  {act.title}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground capitalize bg-secondary px-2 py-0.5 rounded">
-                                  {act.category}
-                                </span>
-                              </li>
-                            ))}
-                          </ul>
-                        )}
-                      </div>
-                    );
-                  })}
+                {/* Tabs: Programação / Cupons */}
+                <div className="flex rounded-2xl bg-secondary p-1 gap-1">
+                  <button
+                    onClick={() => setResumeTab("schedule")}
+                    className={`flex-1 rounded-xl py-2 text-xs font-bold transition ${resumeTab === "schedule" ? "bg-card text-primary shadow-soft" : "text-muted-foreground"}`}
+                  >
+                    🗓️ Programação
+                  </button>
+                  <button
+                    onClick={() => setResumeTab("coupons")}
+                    className={`flex-1 rounded-xl py-2 text-xs font-bold transition flex items-center justify-center gap-1.5 ${resumeTab === "coupons" ? "bg-card text-emerald-600 shadow-soft" : "text-muted-foreground"}`}
+                  >
+                    🎟️ Cupons Salvos
+                    {savedCoupons.length > 0 && (
+                      <span className="rounded-full bg-emerald-500 text-white text-[10px] font-black h-4 w-4 grid place-items-center">
+                        {savedCoupons.length}
+                      </span>
+                    )}
+                  </button>
                 </div>
+
+                {/* TAB: Programação por dia com itens clicáveis */}
+                {resumeTab === "schedule" && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                      Programação Completa por Dia
+                    </h4>
+                    {Array.from({ length: daysCount }, (_, i) => i + 1).map((dayNum) => {
+                      const items = dailySchedule[dayNum] || [];
+                      return (
+                        <div
+                          key={dayNum}
+                          className="rounded-2xl border border-border bg-background p-3.5 space-y-2"
+                        >
+                          <p className="text-xs font-extrabold text-foreground">Dia {dayNum}</p>
+                          {items.length === 0 ? (
+                            <p className="text-[11px] text-muted-foreground italic">Livre</p>
+                          ) : (
+                            <ul className="space-y-1.5">
+                              {items.map((act) => {
+                                const routeMap: Record<string, string> = {
+                                  passeio: "/passeios/$id",
+                                  evento: "/eventos/$id",
+                                  hospedagem: "/hospedagens/$id",
+                                  cupom: "/cupons/$id",
+                                };
+                                const route = routeMap[act.category];
+                                const actId = act.listingId || act.id;
+                                return (
+                                  <li key={act.id} className="flex items-center justify-between text-xs">
+                                    <button
+                                      onClick={() => route && (window.location.href = route.replace("$id", actId))}
+                                      className={`flex items-center gap-1.5 text-left ${route ? "hover:text-primary underline decoration-dotted cursor-pointer" : "cursor-default"} font-semibold text-foreground`}
+                                    >
+                                      <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                                      {act.time ? `[${act.time}] ` : ""}
+                                      {act.title}
+                                      {route && <span className="text-[9px] text-primary/60">↗</span>}
+                                    </button>
+                                    <span className="rounded-md bg-secondary px-2 py-0.5 text-[10px] text-muted-foreground capitalize shrink-0">
+                                      {act.category}
+                                    </span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {/* TAB: Cupons Salvos */}
+                {resumeTab === "coupons" && (
+                  <div className="space-y-3">
+                    {savedCoupons.length === 0 ? (
+                      <div className="rounded-2xl border border-dashed border-emerald-500/40 bg-emerald-500/5 p-6 text-center">
+                        <p className="text-2xl mb-2">🎟️</p>
+                        <p className="text-xs font-bold text-foreground">Nenhum cupom salvo ainda</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          Volte ao Passo 4 e salve cupons para resgatar durante a viagem.
+                        </p>
+                        <button
+                          onClick={() => setActiveStep(4)}
+                          className="mt-3 rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white"
+                        >
+                          Ver Cupons Disponíveis
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                            {savedCoupons.filter(c => !c.redeemed).length} para resgatar ·{" "}
+                            {savedCoupons.filter(c => c.redeemed).length} resgatado(s)
+                          </p>
+                        </div>
+                        <div className="space-y-2.5">
+                          {savedCoupons.map((cp) => (
+                            <div
+                              key={cp.id}
+                              className={`rounded-2xl border p-3 flex items-center justify-between gap-3 ${cp.redeemed ? "border-border bg-background opacity-60" : "border-emerald-500/30 bg-emerald-500/5"}`}
+                            >
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1.5 flex-wrap">
+                                  <span className="text-[9px] font-black uppercase text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-1.5 py-0.5 rounded">
+                                    🎟️ {cp.discount || "DESCONTO"}
+                                  </span>
+                                  {cp.redeemed && (
+                                    <span className="text-[9px] font-black uppercase text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">
+                                      ✓ Resgatado
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs font-bold text-foreground mt-0.5 line-clamp-1">{cp.title}</p>
+                              </div>
+                              <div className="flex flex-col items-end gap-1 shrink-0">
+                                {!cp.redeemed ? (
+                                  <button
+                                    onClick={() => {
+                                      setSavedCoupons(prev =>
+                                        prev.map(c => c.id === cp.id ? { ...c, redeemed: true } : c)
+                                      );
+                                      toast.success(`🎉 Cupom "${cp.title}" resgatado com sucesso!`);
+                                    }}
+                                    className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-brand active:scale-95"
+                                  >
+                                    Resgatar Agora
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setSavedCoupons(prev =>
+                                        prev.map(c => c.id === cp.id ? { ...c, redeemed: false } : c)
+                                      );
+                                    }}
+                                    className="rounded-xl bg-secondary border border-border px-3 py-1.5 text-xs font-bold text-muted-foreground"
+                                  >
+                                    Desfazer
+                                  </button>
+                                )}
+                                <button
+                                  onClick={() => { window.location.href = `/cupons/${cp.listingId || cp.id}`; }}
+                                  className="text-[10px] text-muted-foreground hover:text-primary underline"
+                                >
+                                  Ver cupom ↗
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
 
                 {/* Participantes da Viagem */}
                 {invitedCompanions.length > 0 && (
                   <div className="space-y-2 border-t border-border pt-3">
                     <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                      👥 Participantes da Viagem Compartilhada
+                      👥 Participantes
                     </h4>
                     <div className="flex flex-wrap gap-2">
                       {invitedCompanions.map((c) => (
@@ -1314,8 +1500,8 @@ export function PlanejarPage() {
                 <div className="rounded-2xl bg-amber-500/10 p-3.5 text-xs text-amber-700 dark:text-amber-300 flex items-center gap-2">
                   <Bell className="h-4 w-4 shrink-0 text-amber-500" />
                   <span>
-                    Ao salvar, o Bora Pass enviará <strong>alertas diários automáticos</strong>{" "}
-                    lembrando dos passeios e cupons de cada dia!
+                    Ao salvar, o Bora Pass enviará <strong>alertas diários</strong>{" "}
+                    lembrando dos passeios e cupons a resgatar!
                   </span>
                 </div>
 
