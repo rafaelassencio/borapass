@@ -53,8 +53,10 @@ export function Login() {
 
     function createLocalSession() {
       if (typeof window !== "undefined") {
+        localStorage.removeItem("borapass:simulated-role");
         const isAdminUser =
-          cleanEmail === "rafael.assencio12@gmail.com" ||
+          cleanEmail.includes("rafael.assencio") ||
+          cleanEmail.includes("rafaelassencio") ||
           cleanEmail === "ansysardasilva@gmail.com" ||
           cleanEmail === "admin@borapass.com" ||
           cleanEmail === "admin@borapass.com.br";
@@ -99,6 +101,9 @@ export function Login() {
           createLocalSession();
         }
 
+        if (typeof window !== "undefined") {
+          localStorage.removeItem("borapass:simulated-role");
+        }
         toast.success("Bem-vindo(a) de volta!");
         navigate({ to: "/" });
       } else if (mode === "signup") {

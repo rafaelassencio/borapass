@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const { simulatedRole, realRoles, setRoleSimulation } = useRoles(user?.id);
+  const { simulatedRole, realRoles, setRoleSimulation } = useRoles(user?.id, user?.email);
   const isRealAdmin = realRoles.includes("admin");
 
   return (

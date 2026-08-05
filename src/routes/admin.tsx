@@ -387,14 +387,26 @@ const INITIAL_PARTNER_OFFERS: ListingOffer[] = [
 export function AdminPanelPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isStaff, isAdmin, loading: rolesLoading } = useRoles(user?.id);
+  const { isStaff, isAdmin, isRealAdmin, setRoleSimulation, loading: rolesLoading } = useRoles(user?.id, user?.email);
   const isLoading = authLoading || rolesLoading;
 
+  const isSuper = isRealAdmin || isSuperAdminProtected(user);
+
   useEffect(() => {
-    if (!isLoading && (!user || !isStaff)) {
-      navigate({ to: "/", replace: true });
+    if (!isLoading) {
+      if (!user) {
+        navigate({ to: "/login", replace: true });
+        return;
+      }
+      if (isSuper) {
+        // Automatically restore full admin privileges if accessing /admin
+        setRoleSimulation(null);
+      } else if (!isStaff) {
+        toast.error("Acesso restrito ao Console Administrativo.");
+        navigate({ to: "/", replace: true });
+      }
     }
-  }, [isLoading, user, isStaff, navigate]);
+  }, [isLoading, user, isStaff, isSuper, navigate, setRoleSimulation]);
 
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [search, setSearch] = useState("");

@@ -33,6 +33,7 @@ import {
   Receipt,
   Search,
   ShieldCheck,
+  ShieldAlert,
   Camera,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -166,7 +167,7 @@ export function Perfil() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const profile = useProfile(user?.id);
-  const { isAdmin, isSupport, isPartner, isPremium } = useRoles(user?.id);
+  const { isAdmin, isRealAdmin, isSupport, isPartner, isPremium, simulatedRole, setRoleSimulation } = useRoles(user?.id, user?.email);
   const { favorites } = useFavorites(user?.id);
   const { limits, couponsTodayCount } = usePlanLimits();
   const { data: dbCities } = useCities(true);
@@ -627,13 +628,28 @@ export function Perfil() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="truncate text-xl font-bold">{displayName}</h2>
-                {isPremium ? (
+                {isRealAdmin && simulatedRole ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="shrink-0 rounded-full bg-sky-500/30 px-2.5 py-0.5 text-[10px] font-black text-sky-200 border border-sky-400/40">
+                      🧳 {simulatedRole === "user" ? "Viajante" : simulatedRole === "premium" ? "Viajante Premium" : simulatedRole} (Modo Teste)
+                    </span>
+                    <button
+                      onClick={() => {
+                        setRoleSimulation(null);
+                        toast.success("👑 Perfil Super Admin restaurado!");
+                      }}
+                      className="shrink-0 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-black shadow-sm hover:bg-amber-300 transition"
+                    >
+                      👑 Restaurar Admin
+                    </button>
+                  </div>
+                ) : isRealAdmin || isAdmin ? (
+                  <span className="shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-black text-black shadow-sm flex items-center gap-1">
+                    👑 Super Admin
+                  </span>
+                ) : isPremium ? (
                   <span className="shrink-0 rounded-full bg-gradient-to-r from-amber-400 to-yellow-500 px-2.5 py-0.5 text-[10px] font-black text-black shadow-sm">
                     ⭐ Viajante Premium
-                  </span>
-                ) : isAdmin ? (
-                  <span className="shrink-0 rounded-full bg-amber-400 px-2.5 py-0.5 text-[10px] font-black text-black shadow-sm">
-                    👑 Admin
                   </span>
                 ) : isPartner ? (
                   <span className="shrink-0 rounded-full bg-blue-500 px-2.5 py-0.5 text-[10px] font-black text-white shadow-sm">
@@ -1020,14 +1036,22 @@ export function Perfil() {
               value="Abrir Chamado"
               to="/ajuda"
             />
-            {(isPartner || isAdmin) && (
+            {(isRealAdmin || isAdmin || isSupport) && (
+              <Row
+                icon={<ShieldAlert className="h-4 w-4 text-amber-500" />}
+                label="Console Administrativo"
+                value="Acessar Painel"
+                to="/admin"
+              />
+            )}
+            {(isPartner || isAdmin || isRealAdmin) && (
               <Row
                 icon={<Store className="h-4 w-4 text-primary" />}
                 label="Painel do parceiro"
                 to="/parceiro"
               />
             )}
-            {!isPartner && !isAdmin && !isSupport && (
+            {!isPartner && !isAdmin && !isRealAdmin && !isSupport && (
               <Row icon={<Store className="h-4 w-4" />} label="Quero ser parceiro" to="/parceiro" />
             )}
           </div>

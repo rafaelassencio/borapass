@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "support" | "partner" | "user" | "premium";
 
-export function useRoles(userId?: string) {
+export function useRoles(userId?: string, userEmail?: string) {
   const [roles, setRoles] = useState<AppRole[]>(["user"]);
   const [simulatedRole, setSimulatedRole] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
@@ -33,30 +33,28 @@ export function useRoles(userId?: string) {
 
     async function fetchRoles() {
       try {
-        let currentEmail = "";
+        let currentEmail = (userEmail || "").toLowerCase();
         let currentUid = userId || "";
 
-        // 1. Check local session
-        if (typeof window !== "undefined") {
+        // 1. Check active Supabase Auth user session (prioritizing real auth)
+        try {
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user?.email) {
+            currentEmail = userData.user.email.toLowerCase();
+            if (!currentUid) currentUid = userData.user.id;
+          }
+        } catch {
+          /* fallback */
+        }
+
+        // 2. Check local session fallback
+        if (!currentEmail && typeof window !== "undefined") {
           try {
             const saved = localStorage.getItem("borapass:local-session");
             if (saved) {
               const parsed = JSON.parse(saved);
               if (parsed.email) currentEmail = parsed.email.toLowerCase();
-              if (parsed.id) currentUid = parsed.id;
-            }
-          } catch {
-            /* fallback */
-          }
-        }
-
-        // 2. Check Supabase active session
-        if (!currentEmail) {
-          try {
-            const { data: userData } = await supabase.auth.getUser();
-            if (userData?.user?.email) {
-              currentEmail = userData.user.email.toLowerCase();
-              if (!currentUid) currentUid = userData.user.id;
+              if (parsed.id && !currentUid) currentUid = parsed.id;
             }
           } catch {
             /* fallback */
@@ -64,18 +62,28 @@ export function useRoles(userId?: string) {
         }
 
         // Superadmin account check (rafael.assencio12@gmail.com, rafaelassencio@gmail.com, etc.)
-        const isRealAdmin =
-          currentUid === "u-admin-1" ||
+        const isRealAdminEmail =
           currentEmail.includes("rafael.assencio") ||
           currentEmail.includes("rafaelassencio") ||
+          currentEmail.includes("rafael.assencio12") ||
           currentEmail === "ansysardasilva@gmail.com" ||
           currentEmail === "admin@borapass.com" ||
           currentEmail === "admin@borapass.com.br";
 
+        const isRealAdminUid = currentUid === "u-admin-1" || currentUid === "u-1";
+
         let userRoles: AppRole[] = ["user"];
 
-        if (isRealAdmin) {
+        if (isRealAdminEmail || isRealAdminUid) {
           userRoles = ["admin", "support", "partner", "user", "premium"];
+
+          // Auto-upsert admin role in Supabase user_roles for real UUIDs
+          if (currentUid && currentUid.length > 20) {
+            supabase
+              .from("user_roles")
+              .upsert({ user_id: currentUid, role: "admin" })
+              .then();
+          }
         } else if (currentUid) {
           const { data, error } = await supabase
             .from("user_roles")
@@ -116,7 +124,7 @@ export function useRoles(userId?: string) {
         window.removeEventListener("borapass:auth-changed", handleAuthChanged);
       }
     };
-  }, [userId]);
+  }, [userId, userEmail]);
 
   const isRealAdmin = roles.includes("admin");
 
@@ -154,6 +162,7 @@ export function useRoles(userId?: string) {
     simulatedRole: isRealAdmin ? simulatedRole : null,
     loading,
     isAdmin,
+    isRealAdmin,
     isSupport,
     isStaff,
     isPartner,

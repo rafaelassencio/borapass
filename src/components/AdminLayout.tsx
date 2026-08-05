@@ -75,7 +75,7 @@ export function AdminLayout({
   const navigate = useNavigate();
   const { user } = useAuth();
   const profile = useProfile(user?.id);
-  const { simulatedRole, realRoles, setRoleSimulation, isAdmin } = useRoles(user?.id);
+  const { simulatedRole, realRoles, setRoleSimulation, isAdmin } = useRoles(user?.id, user?.email);
   const isRealAdmin = realRoles.includes("admin");
   const [globalSearch, setGlobalSearch] = useState("");
   const [showTestModal, setShowTestModal] = useState(false);
