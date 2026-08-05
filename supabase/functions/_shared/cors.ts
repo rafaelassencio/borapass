@@ -1,0 +1,13 @@
+/**
+ * _shared/cors.ts
+ * Headers CORS padrão para todas as Edge Functions do Bora Pass
+ */
+export const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
+export function corsResponse() {
+  return new Response("ok", { headers: corsHeaders });
+}

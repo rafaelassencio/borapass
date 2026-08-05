@@ -4,16 +4,14 @@ import {
   Sparkles,
   CheckCircle2,
   ShieldCheck,
-  CreditCard,
   QrCode,
+  CreditCard,
   Lock,
-  ChevronLeft,
   Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
-import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { PaymentModal } from "@/components/PaymentModal";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Assinar Bora Pass Premium — Checkout" }] }),
@@ -54,45 +52,11 @@ export function CheckoutPage() {
     );
   }
 
-  const [plan, setPlan] = useState<"mensal" | "anual">("anual");
-  const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
-  const [processing, setProcessing] = useState(false);
+  const [plan, setPlan] = useState<"mensal" | "anual">("mensal");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
-  // Card fields
-  const [cardNumber, setCardNumber] = useState("");
-  const [cardHolder, setCardHolder] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-
-  async function handleCheckout(e: React.FormEvent) {
-    e.preventDefault();
-    setProcessing(true);
-
-    try {
-      if (user) {
-        // Upgrade user metadata in Supabase Auth
-        await supabase.auth.updateUser({
-          data: { is_premium: true, role: "premium" },
-        });
-
-        // Insert role in user_roles
-        await supabase.from("user_roles").upsert({
-          user_id: user.id,
-          role: "premium",
-        });
-      }
-
-      // Persist local state
-      localStorage.setItem("borapass:user-premium", "true");
-
-      toast.success("Parabéns! Sua assinatura Bora Pass Premium foi ativada com sucesso! 🌟");
-      navigate({ to: "/cupons" });
-    } catch {
-      toast.error("Erro ao processar assinatura. Tente novamente.");
-    } finally {
-      setProcessing(false);
-    }
-  }
+  const planValue = plan === "anual" ? 199.00 : 19.90;
+  const planLabel = plan === "anual" ? "Bora Pass Premium Anual" : "Bora Pass Premium Mensal";
 
   return (
     <AppShell>
@@ -187,128 +151,33 @@ export function CheckoutPage() {
           </div>
         </div>
 
-        {/* Formulário de Pagamento */}
-        <form
-          onSubmit={handleCheckout}
-          className="space-y-4 rounded-3xl border border-border bg-card p-5 shadow-soft"
-        >
-          <label className="text-xs font-bold uppercase tracking-wider text-foreground block">
-            Forma de Pagamento
-          </label>
-
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("pix")}
-              className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold border transition ${
-                paymentMethod === "pix"
-                  ? "bg-primary text-white border-primary shadow-brand"
-                  : "bg-background text-foreground border-border"
-              }`}
-            >
-              <QrCode className="h-4 w-4" /> Pix Instantâneo
-            </button>
-            <button
-              type="button"
-              onClick={() => setPaymentMethod("card")}
-              className={`flex items-center justify-center gap-2 rounded-xl py-2.5 text-xs font-bold border transition ${
-                paymentMethod === "card"
-                  ? "bg-primary text-white border-primary shadow-brand"
-                  : "bg-background text-foreground border-border"
-              }`}
-            >
-              <CreditCard className="h-4 w-4" /> Cartão de Crédito
-            </button>
-          </div>
-
-          {paymentMethod === "pix" ? (
-            <div className="rounded-2xl bg-secondary p-4 text-center space-y-2">
-              <QrCode className="mx-auto h-12 w-12 text-primary" />
-              <p className="text-xs font-bold text-foreground">
-                Aprovação Imediata via QR Code Pix
-              </p>
-              <p className="text-[11px] text-muted-foreground">
-                Ao clicar no botão abaixo, a sua chave Pix será gerada para pagamento rápido.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-3 pt-2">
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
-                  Número do Cartão
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={cardNumber}
-                  onChange={(e) => setCardNumber(e.target.value)}
-                  placeholder="0000 0000 0000 0000"
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
-                  Nome Impresso no Cartão
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={cardHolder}
-                  onChange={(e) => setCardHolder(e.target.value)}
-                  placeholder="NOME COMO NO CARTÃO"
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
-                    Validade
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={expiry}
-                    onChange={(e) => setExpiry(e.target.value)}
-                    placeholder="MM/AA"
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-bold uppercase text-muted-foreground mb-1">
-                    CVV
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={cvv}
-                    onChange={(e) => setCvv(e.target.value)}
-                    placeholder="123"
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-
+        {/* Botão de Checkout */}
+        <div className="pb-6 space-y-3">
           <button
-            type="submit"
-            disabled={processing}
-            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-white shadow-brand transition active:scale-95 disabled:opacity-50"
+            onClick={() => setShowPaymentModal(true)}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-4 text-sm font-bold text-white shadow-brand transition active:scale-95"
           >
-            <Lock className="h-4 w-4" />{" "}
-            {processing
-              ? "Processando..."
-              : `Confirmar Assinatura (${plan === "anual" ? "R$ 199,00/ano" : "R$ 199,00/mês"})`}
+            <Lock className="h-4 w-4" />
+            Assinar Agora por {plan === "anual" ? "R$ 199,00/ano" : "R$ 19,90/mês"}
           </button>
-
           <p className="text-center text-[10px] text-muted-foreground flex items-center justify-center gap-1">
-            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> Pagamento 100% Seguro ·
-            Criptografia SSL 256 bits
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-500" /> Pagamento 100% Seguro via Asaas · SSL 256 bits
           </p>
-        </form>
+        </div>
       </div>
+
+      {/* Modal de Pagamento Asaas */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        value={planValue}
+        description={planLabel}
+        type="subscription"
+        onSuccess={() => {
+          setShowPaymentModal(false);
+          navigate({ to: "/perfil" });
+        }}
+      />
     </AppShell>
   );
 }

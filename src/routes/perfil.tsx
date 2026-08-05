@@ -983,6 +983,14 @@ export function Perfil() {
             value={isAdmin || isSupport ? "Receita & Gestão" : "Pagamentos & Economia"}
             onClick={() => setShowFinancialModal(true)}
           />
+          {!isAdmin && !isSupport && (
+            <Row
+              icon={<CreditCard className="h-4 w-4 text-primary" />}
+              label="Histórico de Pagamentos"
+              value="Assinaturas & Cobranças"
+              to="/pagamentos"
+            />
+          )}
         </div>
 
         <NotificationsBell

@@ -20,8 +20,7 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
-import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
+import { PaymentModal } from "@/components/PaymentModal";
 
 export const Route = createFileRoute("/premium")({
   head: () => ({ meta: [{ title: "Conheça o Viajante Premium — Bora Pass" }] }),
@@ -30,23 +29,8 @@ export const Route = createFileRoute("/premium")({
 
 export function PremiumPage() {
   const { user } = useAuth();
-  const { isPremium, setRoleSimulation } = useRoles(user?.id);
-  const [activating, setActivating] = useState(false);
-
-  async function handleActivatePremium() {
-    setActivating(true);
-    try {
-      if (user) {
-        await supabase.from("user_roles").upsert({ user_id: user.id, role: "premium" });
-      }
-      setRoleSimulation("premium");
-      toast.success("🎉 Parabéns! Seu plano foi atualizado para Viajante Premium!");
-    } catch {
-      toast.error("Erro ao ativar plano Premium.");
-    } finally {
-      setActivating(false);
-    }
-  }
+  const { isPremium } = useRoles(user?.id);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   return (
     <AppShell>
@@ -81,15 +65,21 @@ export function PremiumPage() {
                 <CheckCircle2 className="h-5 w-5" />
                 Você já possui a assinatura Viajante Premium ativa!
               </div>
-            ) : (
+            ) : user ? (
               <button
-                onClick={handleActivatePremium}
-                disabled={activating}
+                onClick={() => setShowPaymentModal(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 px-5 py-4 text-xs font-black uppercase tracking-wider text-black shadow-elevated hover:brightness-110 active:scale-95 transition"
               >
                 <Sparkles className="h-4 w-4 fill-black" />
-                {activating ? "Ativando Plano..." : "✨ Assinar Viajante Premium"}
+                ✨ Assinar Viajante Premium — R$ 19,90/mês
               </button>
+            ) : (
+              <Link
+                to="/login"
+                className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 px-5 py-4 text-xs font-black uppercase tracking-wider text-black shadow-elevated"
+              >
+                Fazer login para assinar
+              </Link>
             )}
           </div>
         </div>
@@ -201,19 +191,28 @@ export function PremiumPage() {
         </div>
 
         {/* Chamada Final */}
-        {!isPremium && (
+        {!isPremium && user && (
           <div className="pb-6">
             <button
-              onClick={handleActivatePremium}
-              disabled={activating}
+              onClick={() => setShowPaymentModal(true)}
               className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-xs font-black uppercase tracking-wider text-white shadow-brand hover:brightness-110 active:scale-95 transition"
             >
               <Sparkles className="h-4 w-4" />
-              {activating ? "Processando..." : "Quero me Tornar Viajante Premium"}
+              Quero me Tornar Viajante Premium
             </button>
           </div>
         )}
       </div>
+
+      {/* Modal de Pagamento Asaas */}
+      <PaymentModal
+        isOpen={showPaymentModal}
+        onClose={() => setShowPaymentModal(false)}
+        value={19.90}
+        description="Bora Pass Premium"
+        type="subscription"
+        onSuccess={() => setShowPaymentModal(false)}
+      />
     </AppShell>
   );
 }

@@ -119,16 +119,52 @@ export default function PartnerFormModal({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-bold uppercase text-muted-foreground">
-              URL da Logo da Loja
+            <label className="mb-1 block text-xs font-bold uppercase text-muted-foreground flex items-center justify-between">
+              <span>Logo / Foto da Loja</span>
+              <span className="text-[10px] text-primary">Envie do Computador ou digite a URL</span>
             </label>
-            <input
-              type="text"
-              value={logoUrl}
-              onChange={(e) => setLogoUrl(e.target.value)}
-              placeholder="https://exemplo.com/logo.jpg"
-              className="w-full rounded-xl border border-border bg-card px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary shadow-soft"
-            />
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={logoUrl}
+                onChange={(e) => setLogoUrl(e.target.value)}
+                placeholder="URL da imagem ou envie foto do computador"
+                className="flex-1 rounded-xl border border-border bg-card px-3 py-2 text-xs outline-none focus:ring-1 focus:ring-primary shadow-soft"
+              />
+              <label className="cursor-pointer rounded-xl bg-primary px-3 py-2 text-xs font-bold text-white shadow-brand hover:brightness-110 shrink-0">
+                📁 Enviar Foto
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => {
+                        if (ev.target?.result) {
+                          setLogoUrl(ev.target.result as string);
+                          toast.success("Foto carregada com sucesso do computador!");
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                />
+              </label>
+            </div>
+            {logoUrl && (
+              <div className="mt-2 flex items-center gap-2">
+                <img
+                  src={logoUrl}
+                  alt="Preview"
+                  className="h-10 w-10 rounded-xl object-cover border border-border shadow-sm"
+                />
+                <span className="text-[10px] text-muted-foreground font-semibold">
+                  Foto pronta para o cadastro
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Category & City */}
