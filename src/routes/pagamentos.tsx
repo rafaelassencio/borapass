@@ -60,14 +60,17 @@ export function PagamentosPage() {
 
   async function fetchData() {
     setLoading(true);
+    // Cast to any because payments/subscriptions tables are new and not yet in auto-generated types.ts
+    // They will be added automatically when Supabase applies the migration.
+    const db = supabase as any;
     const [paymentsRes, subscriptionsRes] = await Promise.all([
-      supabase
+      db
         .from("payments")
         .select("*")
         .eq("user_id", user!.id)
         .order("created_at", { ascending: false })
         .limit(50),
-      supabase
+      db
         .from("subscriptions")
         .select("*")
         .eq("user_id", user!.id)

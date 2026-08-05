@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { PaymentModal } from "@/components/PaymentModal";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/checkout")({
   head: () => ({ meta: [{ title: "Assinar Bora Pass Premium — Checkout" }] }),
