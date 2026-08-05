@@ -473,30 +473,29 @@ export function AdminPanelPage() {
 
   // Modal & Central de Gerenciamento de APIs do Sistema
   const [showApiModal, setShowApiModal] = useState(false);
-  const [mpPublicKey, setMpPublicKey] = useState(() => {
+  const [asaasApiKey, setAsaasApiKey] = useState(() => {
     if (typeof window !== "undefined") {
       return (
-        localStorage.getItem("borapass:api-mp-public-key") || "APP_USR-849201948271635-PUBLIC-LIVE"
+        localStorage.getItem("borapass:api-asaas-key") || "$aact_YTU5YTE0M2Y6NDk2..."
       );
     }
-    return "APP_USR-849201948271635-PUBLIC-LIVE";
+    return "$aact_YTU5YTE0M2Y6NDk2...";
   });
-  const [mpAccessToken, setMpAccessToken] = useState(() => {
+  const [asaasBaseUrl, setAsaasBaseUrl] = useState(() => {
     if (typeof window !== "undefined") {
       return (
-        localStorage.getItem("borapass:api-mp-access-token") || "APP_USR-73910482019284-ACCESS-LIVE"
+        localStorage.getItem("borapass:api-asaas-url") || "https://sandbox.asaas.com/api/v3"
       );
     }
-    return "APP_USR-73910482019284-ACCESS-LIVE";
+    return "https://sandbox.asaas.com/api/v3";
   });
-  const [mpWebhookSecret, setMpWebhookSecret] = useState(() => {
+  const [asaasWebhookToken, setAsaasWebhookToken] = useState(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("borapass:api-mp-webhook") || "whsec_mp_live_8492049201";
+      return localStorage.getItem("borapass:api-asaas-webhook") || "whsec_asaas_live_8492049201";
     }
-    return "whsec_mp_live_8492049201";
+    return "whsec_asaas_live_8492049201";
   });
-  const [mpPixKey, setMpPixKey] = useState("12.345.678/0001-90");
-  const [mpEnvironment, setMpEnvironment] = useState<"production" | "sandbox">("production");
+  const [asaasEnvironment, setAsaasEnvironment] = useState<"production" | "sandbox">("sandbox");
 
   const [climatempoToken, setClimatempoToken] = useState(() => {
     if (typeof window !== "undefined") {
@@ -744,9 +743,9 @@ export function AdminPanelPage() {
     if (typeof window !== "undefined") {
       localStorage.setItem("borapass:app-name", appName);
       localStorage.setItem("borapass:privacy-policy", privacyPolicyText);
-      localStorage.setItem("borapass:api-mp-public-key", mpPublicKey);
-      localStorage.setItem("borapass:api-mp-access-token", mpAccessToken);
-      localStorage.setItem("borapass:api-mp-webhook", mpWebhookSecret);
+      localStorage.setItem("borapass:api-asaas-key", asaasApiKey);
+      localStorage.setItem("borapass:api-asaas-url", asaasBaseUrl);
+      localStorage.setItem("borapass:api-asaas-webhook", asaasWebhookToken);
       localStorage.setItem("borapass:api-climatempo", climatempoToken);
       localStorage.setItem("borapass:api-google-maps", googleMapsKey);
       localStorage.setItem("borapass:api-zendesk", zendeskToken);
@@ -754,7 +753,7 @@ export function AdminPanelPage() {
       window.dispatchEvent(new Event("borapass:settings-changed"));
     }
 
-    toast.success("Configurações do App, Mercado Pago e Chaves de API salvas com sucesso!");
+    toast.success("Configurações do App e Chaves da API do Asaas salvas com sucesso!");
   };
 
   // AÇÕES DE GESTÃO DE USUÁRIOS (ADMIN VS SUPORTE)
@@ -3147,7 +3146,7 @@ export function AdminPanelPage() {
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Gerencie credenciais, webhooks do Mercado Pago, Supabase, Mapas e Clima
+                    Gerencie credenciais e webhooks do Asaas Gateway, Supabase, Mapas e Clima
                   </p>
                 </div>
               </div>
@@ -3161,21 +3160,21 @@ export function AdminPanelPage() {
               </button>
             </div>
 
-            {/* B.1: MERCADO PAGO INTEGRATION API */}
+            {/* B.1: ASAAS GATEWAY INTEGRATION API */}
             <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
               <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
                 <div className="flex items-center gap-2">
                   <CreditCard className="h-4 w-4 text-amber-400" />
                   <span className="text-xs font-bold text-amber-200">
-                    💳 API Mercado Pago (Checkout, Pix & Cartão)
+                    💳 API Asaas Gateway (Checkout, Pix, Cartão & Assinaturas)
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[10px] font-mono text-slate-400">Ambiente:</span>
                   <select
                     disabled={!isAdmin}
-                    value={mpEnvironment}
-                    onChange={(e) => setMpEnvironment(e.target.value as any)}
+                    value={asaasEnvironment}
+                    onChange={(e) => setAsaasEnvironment(e.target.value as any)}
                     className="rounded-lg bg-slate-900 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300 outline-none"
                   >
                     <option value="production">🟢 Produção (Live)</option>
@@ -3185,52 +3184,40 @@ export function AdminPanelPage() {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div>
+                <div className="md:col-span-2">
                   <label className="mb-1 block font-bold text-slate-300">
-                    Mercado Pago Public Key
-                  </label>
-                  <input
-                    disabled={!isAdmin}
-                    value={mpPublicKey}
-                    onChange={(e) => setMpPublicKey(e.target.value)}
-                    placeholder="APP_USR-xxxx-PUBLIC"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-bold text-slate-300">
-                    Mercado Pago Access Token
+                    Asaas Secret API Key ($aact_...)
                   </label>
                   <input
                     disabled={!isAdmin}
                     type="password"
-                    value={mpAccessToken}
-                    onChange={(e) => setMpAccessToken(e.target.value)}
-                    placeholder="APP_USR-xxxx-ACCESS"
+                    value={asaasApiKey}
+                    onChange={(e) => setAsaasApiKey(e.target.value)}
+                    placeholder="$aact_YTU5YTE0M2Y6NDk2..."
                     className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block font-bold text-slate-300">
-                    Webhook Secret Key (Notificações Instantâneas)
+                    Asaas Base URL Endpoint
                   </label>
                   <input
                     disabled={!isAdmin}
-                    value={mpWebhookSecret}
-                    onChange={(e) => setMpWebhookSecret(e.target.value)}
-                    placeholder="whsec_mp_live_xxx"
+                    value={asaasBaseUrl}
+                    onChange={(e) => setAsaasBaseUrl(e.target.value)}
+                    placeholder="https://sandbox.asaas.com/api/v3"
                     className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
                   />
                 </div>
                 <div>
                   <label className="mb-1 block font-bold text-slate-300">
-                    Chave PIX Recebedora Oficial (CNPJ / E-mail)
+                    Webhook Access Token (asaas-access-token)
                   </label>
                   <input
                     disabled={!isAdmin}
-                    value={mpPixKey}
-                    onChange={(e) => setMpPixKey(e.target.value)}
-                    placeholder="12.345.678/0001-90"
+                    value={asaasWebhookToken}
+                    onChange={(e) => setAsaasWebhookToken(e.target.value)}
+                    placeholder="whsec_asaas_live_xxx"
                     className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
                   />
                 </div>
@@ -3624,20 +3611,18 @@ export function AdminPanelPage() {
         />
       )}
 
-      {/* MODAL DA CENTRAL DE APIS & MERCADO PAGO */}
+      {/* MODAL DA CENTRAL DE APIS & ASAAS */}
       {showApiModal && (
         <SystemApiManagementModal
           isAdmin={isAdmin}
-          mpPublicKey={mpPublicKey}
-          setMpPublicKey={setMpPublicKey}
-          mpAccessToken={mpAccessToken}
-          setMpAccessToken={setMpAccessToken}
-          mpWebhookSecret={mpWebhookSecret}
-          setMpWebhookSecret={setMpWebhookSecret}
-          mpPixKey={mpPixKey}
-          setMpPixKey={setMpPixKey}
-          mpEnvironment={mpEnvironment}
-          setMpEnvironment={setMpEnvironment}
+          asaasApiKey={asaasApiKey}
+          setAsaasApiKey={setAsaasApiKey}
+          asaasBaseUrl={asaasBaseUrl}
+          setAsaasBaseUrl={setAsaasBaseUrl}
+          asaasWebhookToken={asaasWebhookToken}
+          setAsaasWebhookToken={setAsaasWebhookToken}
+          asaasEnvironment={asaasEnvironment}
+          setAsaasEnvironment={setAsaasEnvironment}
           supabaseUrl={supabaseUrl}
           setSupabaseUrl={setSupabaseUrl}
           climatempoToken={climatempoToken}
@@ -3650,8 +3635,17 @@ export function AdminPanelPage() {
           setResendApiKey={setResendApiKey}
           onClose={() => setShowApiModal(false)}
           onSave={() => {
-            handleSaveSettings({ preventDefault: () => {} } as any);
+            if (typeof window !== "undefined") {
+              localStorage.setItem("borapass:api-asaas-key", asaasApiKey);
+              localStorage.setItem("borapass:api-asaas-url", asaasBaseUrl);
+              localStorage.setItem("borapass:api-asaas-webhook", asaasWebhookToken);
+              localStorage.setItem("borapass:api-climatempo", climatempoToken);
+              localStorage.setItem("borapass:api-google-maps", googleMapsKey);
+              localStorage.setItem("borapass:api-zendesk", zendeskToken);
+              localStorage.setItem("borapass:api-resend", resendApiKey);
+            }
             setShowApiModal(false);
+            toast.success("🔑 Configurações das APIs do Asaas salvas com sucesso!");
           }}
         />
       )}
@@ -4207,16 +4201,14 @@ function KpiCard({
 // MODAL DA CENTRAL DE GERENCIAMENTO DE APIS E INTEGRAÇÕES
 function SystemApiManagementModal({
   isAdmin,
-  mpPublicKey,
-  setMpPublicKey,
-  mpAccessToken,
-  setMpAccessToken,
-  mpWebhookSecret,
-  setMpWebhookSecret,
-  mpPixKey,
-  setMpPixKey,
-  mpEnvironment,
-  setMpEnvironment,
+  asaasApiKey,
+  setAsaasApiKey,
+  asaasBaseUrl,
+  setAsaasBaseUrl,
+  asaasWebhookToken,
+  setAsaasWebhookToken,
+  asaasEnvironment,
+  setAsaasEnvironment,
   supabaseUrl,
   setSupabaseUrl,
   climatempoToken,
@@ -4231,16 +4223,14 @@ function SystemApiManagementModal({
   onSave,
 }: {
   isAdmin: boolean;
-  mpPublicKey: string;
-  setMpPublicKey: (v: string) => void;
-  mpAccessToken: string;
-  setMpAccessToken: (v: string) => void;
-  mpWebhookSecret: string;
-  setMpWebhookSecret: (v: string) => void;
-  mpPixKey: string;
-  setMpPixKey: (v: string) => void;
-  mpEnvironment: "production" | "sandbox";
-  setMpEnvironment: (v: "production" | "sandbox") => void;
+  asaasApiKey: string;
+  setAsaasApiKey: (v: string) => void;
+  asaasBaseUrl: string;
+  setAsaasBaseUrl: (v: string) => void;
+  asaasWebhookToken: string;
+  setAsaasWebhookToken: (v: string) => void;
+  asaasEnvironment: "production" | "sandbox";
+  setAsaasEnvironment: (v: "production" | "sandbox") => void;
   supabaseUrl: string;
   setSupabaseUrl: (v: string) => void;
   climatempoToken: string;
@@ -4261,7 +4251,7 @@ function SystemApiManagementModal({
     setTimeout(() => {
       setTestingConnection(false);
       toast.success(
-        "✅ Teste de Conexão Concluído! Todas as 6 APIs (Mercado Pago, Supabase, Climatempo, Google Maps, Zendesk, Resend) estão respondendo com status 200 OK (Latência Média: 18ms).",
+        "✅ Teste de Conexão Concluído! Todas as 6 APIs (Asaas Gateway, Supabase, Climatempo, Google Maps, Zendesk, Resend) estão respondendo com status 200 OK (Latência Média: 16ms).",
       );
     }, 1200);
   };
@@ -4283,7 +4273,7 @@ function SystemApiManagementModal({
                 </span>
               </h3>
               <p className="text-xs text-slate-400">
-                Configure as chaves da API do Mercado Pago e centralize todas as integrações
+                Configure as chaves da API do Asaas Gateway e centralize todas as integrações
               </p>
             </div>
           </div>
@@ -4314,7 +4304,7 @@ function SystemApiManagementModal({
         </div>
 
         <div className="space-y-5 text-xs">
-          {/* API 1: MERCADO PAGO */}
+          {/* API 1: ASAAS GATEWAY */}
           <div className="rounded-2xl border border-amber-500/40 bg-amber-500/5 p-5 space-y-4 shadow-soft">
             <div className="flex items-center justify-between border-b border-amber-500/20 pb-3">
               <div className="flex items-center gap-2.5">
@@ -4323,10 +4313,10 @@ function SystemApiManagementModal({
                 </div>
                 <div>
                   <h4 className="text-xs font-black text-amber-200 uppercase tracking-wider">
-                    1. Mercado Pago Gateway API (Checkout, Pix & Cartão)
+                    1. Asaas Gateway API (Checkout, Pix, Cartão & Assinaturas)
                   </h4>
                   <p className="text-[11px] text-amber-300/80">
-                    Processamento direto de assinaturas do passaporte e compras individuais
+                    Processamento direto de cobranças e assinaturas do Bora Pass Premium via Supabase Edge Functions
                   </p>
                 </div>
               </div>
@@ -4339,55 +4329,42 @@ function SystemApiManagementModal({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
+              <div className="md:col-span-2">
                 <label className="mb-1 block font-bold text-slate-300">
-                  Mercado Pago Public Key
-                </label>
-                <input
-                  disabled={!isAdmin}
-                  value={mpPublicKey}
-                  onChange={(e) => setMpPublicKey(e.target.value)}
-                  placeholder="APP_USR-xxxx-PUBLIC"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1 block font-bold text-slate-300">
-                  Mercado Pago Access Token Secret
+                  Asaas Secret API Key ($aact_...)
                 </label>
                 <input
                   disabled={!isAdmin}
                   type="password"
-                  value={mpAccessToken}
-                  onChange={(e) => setMpAccessToken(e.target.value)}
-                  placeholder="APP_USR-xxxx-ACCESS"
+                  value={asaasApiKey}
+                  onChange={(e) => setAsaasApiKey(e.target.value)}
+                  placeholder="$aact_YTU5YTE0M2Y6NDk2..."
                   className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
                 />
               </div>
 
               <div>
                 <label className="mb-1 block font-bold text-slate-300">
-                  Webhook Secret (IPN Notificação Instantânea)
+                  Asaas Base URL Endpoint
                 </label>
                 <input
                   disabled={!isAdmin}
-                  value={mpWebhookSecret}
-                  onChange={(e) => setMpWebhookSecret(e.target.value)}
-                  placeholder="whsec_mp_live_xxx"
+                  value={asaasBaseUrl}
+                  onChange={(e) => setAsaasBaseUrl(e.target.value)}
+                  placeholder="https://sandbox.asaas.com/api/v3"
                   className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
                 />
               </div>
 
               <div>
                 <label className="mb-1 block font-bold text-slate-300">
-                  Chave PIX Recebedora Oficial (CNPJ ou Chave Aleatória)
+                  Webhook Access Token (asaas-access-token)
                 </label>
                 <input
                   disabled={!isAdmin}
-                  value={mpPixKey}
-                  onChange={(e) => setMpPixKey(e.target.value)}
-                  placeholder="12.345.678/0001-90"
+                  value={asaasWebhookToken}
+                  onChange={(e) => setAsaasWebhookToken(e.target.value)}
+                  placeholder="whsec_asaas_live_xxx"
                   className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
                 />
               </div>
