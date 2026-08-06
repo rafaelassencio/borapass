@@ -1,23 +1,81 @@
-import { useEffect, useState } from "react";
+/**
+ * src/hooks/use-roles.ts
+ * Hook otimizado para gerenciamento de papéis e assinaturas em tempo real.
+ * Carrega permissões e plano Premium de forma instantânea sem "flash" de papel incorreto.
+ */
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
 export type AppRole = "admin" | "support" | "partner" | "user" | "premium";
 
+const CACHE_KEY_ROLES = "borapass:cached-roles";
+const CACHE_KEY_SIMULATED = "borapass:simulated-role";
+
+// Memory cache global para sobrevivência entre renderizações de componentes
+let memoryRolesCache: AppRole[] | null = null;
+
 export function useRoles(userId?: string, userEmail?: string) {
-  const [roles, setRoles] = useState<AppRole[]>(["user"]);
+  // 1. Inicialização síncrona instantânea (0ms) via memória ou localStorage
+  const [roles, setRoles] = useState<AppRole[]>(() => {
+    if (memoryRolesCache) return memoryRolesCache;
+
+    let currentEmail = (userEmail || "").toLowerCase();
+
+    // Tenta recuperar do localStorage se o usuário tiver sessão salva
+    if (typeof window !== "undefined") {
+      try {
+        const savedSession = localStorage.getItem("borapass:local-session");
+        if (savedSession) {
+          const parsed = JSON.parse(savedSession);
+          if (parsed.email) currentEmail = parsed.email.toLowerCase();
+        }
+      } catch { /* fallback */ }
+    }
+
+    // Detecção instantânea síncrona para o Super Admin principal
+    const isSuperAdminEmail =
+      currentEmail.includes("rafael.assencio") ||
+      currentEmail.includes("rafaelassencio") ||
+      currentEmail === "ansysardasilva@gmail.com" ||
+      currentEmail === "admin@borapass.com" ||
+      currentEmail === "admin@borapass.com.br";
+
+    if (isSuperAdminEmail) {
+      const adminRoles: AppRole[] = ["admin", "support", "partner", "user", "premium"];
+      memoryRolesCache = adminRoles;
+      return adminRoles;
+    }
+
+    if (typeof window !== "undefined") {
+      try {
+        const cached = localStorage.getItem(CACHE_KEY_ROLES);
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            memoryRolesCache = parsed;
+            return parsed;
+          }
+        }
+      } catch { /* fallback */ }
+    }
+
+    return ["user"];
+  });
+
   const [simulatedRole, setSimulatedRole] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
-      return localStorage.getItem("borapass:simulated-role");
+      return localStorage.getItem(CACHE_KEY_SIMULATED);
     }
     return null;
   });
-  const [loading, setLoading] = useState(true);
 
-  // Listen for role simulation changes across tabs or components
+  const [loading, setLoading] = useState(() => !memoryRolesCache);
+
+  // Escuta eventos de simulação de papel
   useEffect(() => {
     function handleStorage() {
       if (typeof window !== "undefined") {
-        setSimulatedRole(localStorage.getItem("borapass:simulated-role"));
+        setSimulatedRole(localStorage.getItem(CACHE_KEY_SIMULATED));
       }
     }
     window.addEventListener("storage", handleStorage);
@@ -28,6 +86,7 @@ export function useRoles(userId?: string, userEmail?: string) {
     };
   }, []);
 
+  // Busca e sincroniza papéis em paralelo (Promise.all)
   useEffect(() => {
     let isMounted = true;
 
@@ -36,18 +95,16 @@ export function useRoles(userId?: string, userEmail?: string) {
         let currentEmail = (userEmail || "").toLowerCase();
         let currentUid = userId || "";
 
-        // 1. Check active Supabase Auth user session (prioritizing real auth)
+        // 1. Obter usuário autenticado
         try {
           const { data: userData } = await supabase.auth.getUser();
           if (userData?.user?.email) {
             currentEmail = userData.user.email.toLowerCase();
             if (!currentUid) currentUid = userData.user.id;
           }
-        } catch {
-          /* fallback */
-        }
+        } catch { /* fallback */ }
 
-        // 2. Check local session fallback
+        // 2. Tentar recuperar da sessão local
         if (!currentEmail && typeof window !== "undefined") {
           try {
             const saved = localStorage.getItem("borapass:local-session");
@@ -56,28 +113,22 @@ export function useRoles(userId?: string, userEmail?: string) {
               if (parsed.email) currentEmail = parsed.email.toLowerCase();
               if (parsed.id && !currentUid) currentUid = parsed.id;
             }
-          } catch {
-            /* fallback */
-          }
+          } catch { /* fallback */ }
         }
 
-        // Superadmin account check (rafael.assencio12@gmail.com, rafaelassencio@gmail.com, etc.)
-        const isRealAdminEmail =
+        const isSuperAdminEmail =
           currentEmail.includes("rafael.assencio") ||
           currentEmail.includes("rafaelassencio") ||
-          currentEmail.includes("rafael.assencio12") ||
           currentEmail === "ansysardasilva@gmail.com" ||
           currentEmail === "admin@borapass.com" ||
           currentEmail === "admin@borapass.com.br";
 
-        const isRealAdminUid = currentUid === "u-admin-1" || currentUid === "u-1";
+        const isSuperAdminUid = currentUid === "u-admin-1" || currentUid === "u-1";
 
-        let userRoles: AppRole[] = ["user"];
+        let calculatedRoles: AppRole[] = ["user"];
 
-        if (isRealAdminEmail || isRealAdminUid) {
-          userRoles = ["admin", "support", "partner", "user", "premium"];
-
-          // Auto-upsert admin role in Supabase user_roles for real UUIDs
+        if (isSuperAdminEmail || isSuperAdminUid) {
+          calculatedRoles = ["admin", "support", "partner", "user", "premium"];
           if (currentUid && currentUid.length > 20) {
             supabase
               .from("user_roles")
@@ -85,24 +136,35 @@ export function useRoles(userId?: string, userEmail?: string) {
               .then();
           }
         } else if (currentUid) {
-          const { data, error } = await supabase
-            .from("user_roles")
-            .select("role")
-            .eq("user_id", currentUid);
+          // Consultas em PARALELO: user_roles e subscriptions
+          const [rolesRes, subRes] = await Promise.all([
+            supabase.from("user_roles").select("role").eq("user_id", currentUid),
+            (supabase as any).from("subscriptions").select("status").eq("user_id", currentUid).eq("status", "ACTIVE").limit(1)
+          ]);
 
-          if (!error && data && data.length > 0) {
-            const dbRoles = data.map((r) => r.role as AppRole);
-            userRoles = Array.from(new Set([...userRoles, ...dbRoles]));
+          if (!rolesRes.error && rolesRes.data) {
+            const dbRoles = rolesRes.data.map((r) => r.role as AppRole);
+            calculatedRoles = Array.from(new Set([...calculatedRoles, ...dbRoles]));
+          }
+
+          if (!subRes.error && subRes.data && subRes.data.length > 0) {
+            if (!calculatedRoles.includes("premium")) {
+              calculatedRoles.push("premium");
+            }
           }
         }
 
+        memoryRolesCache = calculatedRoles;
+        if (typeof window !== "undefined") {
+          localStorage.setItem(CACHE_KEY_ROLES, JSON.stringify(calculatedRoles));
+        }
+
         if (isMounted) {
-          setRoles(userRoles);
+          setRoles(calculatedRoles);
           setLoading(false);
         }
       } catch {
         if (isMounted) {
-          setRoles(["user"]);
           setLoading(false);
         }
       }
@@ -126,35 +188,38 @@ export function useRoles(userId?: string, userEmail?: string) {
     };
   }, [userId, userEmail]);
 
-  const isRealAdmin = roles.includes("admin");
+  const isRealAdmin = useMemo(() => roles.includes("admin"), [roles]);
 
-  // Determine effective roles based on simulation
-  let effectiveRoles = [...roles];
-  if (isRealAdmin && simulatedRole && simulatedRole !== "all") {
-    if (simulatedRole === "user") effectiveRoles = ["user"];
-    else if (simulatedRole === "premium") effectiveRoles = ["user", "premium"];
-    else if (simulatedRole === "partner") effectiveRoles = ["partner", "user"];
-    else if (simulatedRole === "support") effectiveRoles = ["support", "user"];
-    else if (simulatedRole === "admin")
-      effectiveRoles = ["admin", "support", "partner", "user", "premium"];
-  }
+  // Papéis efetivos considerando simulação
+  const effectiveRoles = useMemo(() => {
+    let list = [...roles];
+    if (isRealAdmin && simulatedRole && simulatedRole !== "all") {
+      if (simulatedRole === "user") list = ["user"];
+      else if (simulatedRole === "premium") list = ["user", "premium"];
+      else if (simulatedRole === "partner") list = ["partner", "user"];
+      else if (simulatedRole === "support") list = ["support", "user"];
+      else if (simulatedRole === "admin")
+        list = ["admin", "support", "partner", "user", "premium"];
+    }
+    return list;
+  }, [roles, isRealAdmin, simulatedRole]);
 
-  const isAdmin = effectiveRoles.includes("admin");
-  const isSupport = effectiveRoles.includes("support");
-  const isPartner = effectiveRoles.includes("partner");
-  const isPremium = effectiveRoles.includes("premium");
-  const isStaff = isAdmin || isSupport;
+  const isAdmin = useMemo(() => effectiveRoles.includes("admin"), [effectiveRoles]);
+  const isSupport = useMemo(() => effectiveRoles.includes("support"), [effectiveRoles]);
+  const isPartner = useMemo(() => effectiveRoles.includes("partner"), [effectiveRoles]);
+  const isPremium = useMemo(() => effectiveRoles.includes("premium"), [effectiveRoles]);
+  const isStaff = useMemo(() => isAdmin || isSupport, [isAdmin, isSupport]);
 
-  const setRoleSimulation = (role: string | null) => {
+  const setRoleSimulation = useCallback((role: string | null) => {
     if (typeof window !== "undefined") {
       if (role && role !== "all") {
-        localStorage.setItem("borapass:simulated-role", role);
+        localStorage.setItem(CACHE_KEY_SIMULATED, role);
       } else {
-        localStorage.removeItem("borapass:simulated-role");
+        localStorage.removeItem(CACHE_KEY_SIMULATED);
       }
       window.dispatchEvent(new Event("borapass:role-changed"));
     }
-  };
+  }, []);
 
   return {
     roles: effectiveRoles,

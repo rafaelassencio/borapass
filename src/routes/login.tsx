@@ -103,6 +103,18 @@ export function Login() {
 
         if (typeof window !== "undefined") {
           localStorage.removeItem("borapass:simulated-role");
+          if (
+            cleanEmail.includes("rafael.assencio") ||
+            cleanEmail.includes("rafaelassencio") ||
+            cleanEmail === "admin@borapass.com" ||
+            cleanEmail === "admin@borapass.com.br"
+          ) {
+            localStorage.setItem(
+              "borapass:cached-roles",
+              JSON.stringify(["admin", "support", "partner", "user", "premium"]),
+            );
+          }
+          window.dispatchEvent(new Event("borapass:auth-changed"));
         }
         toast.success("Bem-vindo(a) de volta!");
         navigate({ to: "/" });

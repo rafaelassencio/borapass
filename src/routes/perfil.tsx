@@ -167,7 +167,7 @@ export function Perfil() {
   const navigate = useNavigate();
   const { user, loading } = useAuth();
   const profile = useProfile(user?.id);
-  const { isAdmin, isRealAdmin, isSupport, isPartner, isPremium, simulatedRole, setRoleSimulation } = useRoles(user?.id, user?.email);
+  const { isAdmin, isRealAdmin, isSupport, isPartner, isPremium, simulatedRole, setRoleSimulation, loading: rolesLoading } = useRoles(user?.id, user?.email);
   const { favorites } = useFavorites(user?.id);
   const { limits, couponsTodayCount } = usePlanLimits();
   const { data: dbCities } = useCities(true);
@@ -628,7 +628,11 @@ export function Perfil() {
             <div className="min-w-0 flex-1">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="truncate text-xl font-bold">{displayName}</h2>
-                {isRealAdmin && simulatedRole ? (
+                {rolesLoading ? (
+                  <span className="shrink-0 rounded-full bg-white/10 px-3 py-0.5 text-[10px] font-bold text-white animate-pulse">
+                    Carregando perfil...
+                  </span>
+                ) : isRealAdmin && simulatedRole ? (
                   <div className="flex items-center gap-1.5">
                     <span className="shrink-0 rounded-full bg-sky-500/30 px-2.5 py-0.5 text-[10px] font-black text-sky-200 border border-sky-400/40">
                       🧳 {simulatedRole === "user" ? "Viajante" : simulatedRole === "premium" ? "Viajante Premium" : simulatedRole} (Modo Teste)
