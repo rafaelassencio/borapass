@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { AdminLayout, type AdminTab } from "@/components/AdminLayout";
 import { RBACManagementView } from "@/components/RBACManagementView";
@@ -3152,13 +3152,21 @@ export function AdminPanelPage() {
                 </div>
               </div>
 
-              <button
-                type="button"
-                onClick={() => setShowApiModal(true)}
-                className="rounded-xl bg-sky-600 hover:bg-sky-500 px-4 py-2.5 text-xs font-bold text-white shadow-brand transition flex items-center justify-center gap-2 shrink-0"
-              >
-                <Key className="h-4 w-4" /> Acessar Chaves de API no Console
-              </button>
+              <div className="flex items-center gap-2">
+                <Link
+                  to="/admin/diagnostico-asaas"
+                  className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-brand transition flex items-center justify-center gap-1.5 shrink-0"
+                >
+                  <Sparkles className="h-4 w-4" /> Diagnóstico Asaas ⚡
+                </Link>
+                <button
+                  type="button"
+                  onClick={() => setShowApiModal(true)}
+                  className="rounded-xl bg-sky-600 hover:bg-sky-500 px-4 py-2.5 text-xs font-bold text-white shadow-brand transition flex items-center justify-center gap-2 shrink-0"
+                >
+                  <Key className="h-4 w-4" /> Acessar Chaves de API no Console
+                </button>
+              </div>
             </div>
 
             {/* B.1: ASAAS GATEWAY INTEGRATION API */}

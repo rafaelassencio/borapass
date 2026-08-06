@@ -29,6 +29,7 @@ import { Route as RoteirosRouteImport } from './routes/roteiros'
 import { Route as SuportePainelRouteImport } from './routes/suporte-painel'
 import { Route as SupportRouteImport } from './routes/support'
 import { Route as ValidarCupomRouteImport } from './routes/validar-cupom'
+import { Route as AdminDiagnosticoAsaasRouteImport } from './routes/admin.diagnostico-asaas'
 import { Route as CuponsIndexRouteImport } from './routes/cupons.index'
 import { Route as CuponsIdRouteImport } from './routes/cupons.$id'
 import { Route as EventosIndexRouteImport } from './routes/eventos.index'
@@ -138,6 +139,11 @@ const ValidarCupomRoute = ValidarCupomRouteImport.update({
   path: '/validar-cupom',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDiagnosticoAsaasRoute = AdminDiagnosticoAsaasRouteImport.update({
+  id: '/diagnostico-asaas',
+  path: '/diagnostico-asaas',
+  getParentRoute: () => AdminRoute,
+} as any)
 const CuponsIndexRoute = CuponsIndexRouteImport.update({
   id: '/cupons/',
   path: '/cupons/',
@@ -181,7 +187,7 @@ const PasseiosIdRoute = PasseiosIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ajuda': typeof AjudaRoute
   '/checkout': typeof CheckoutRoute
   '/corporate': typeof CorporateRoute
@@ -200,6 +206,7 @@ export interface FileRoutesByFullPath {
   '/suporte-painel': typeof SuportePainelRoute
   '/support': typeof SupportRoute
   '/validar-cupom': typeof ValidarCupomRoute
+  '/admin/diagnostico-asaas': typeof AdminDiagnosticoAsaasRoute
   '/cupons/$id': typeof CuponsIdRoute
   '/eventos/$id': typeof EventosIdRoute
   '/hospedagens/$id': typeof HospedagensIdRoute
@@ -211,7 +218,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ajuda': typeof AjudaRoute
   '/checkout': typeof CheckoutRoute
   '/corporate': typeof CorporateRoute
@@ -230,6 +237,7 @@ export interface FileRoutesByTo {
   '/suporte-painel': typeof SuportePainelRoute
   '/support': typeof SupportRoute
   '/validar-cupom': typeof ValidarCupomRoute
+  '/admin/diagnostico-asaas': typeof AdminDiagnosticoAsaasRoute
   '/cupons/$id': typeof CuponsIdRoute
   '/eventos/$id': typeof EventosIdRoute
   '/hospedagens/$id': typeof HospedagensIdRoute
@@ -242,7 +250,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/admin': typeof AdminRoute
+  '/admin': typeof AdminRouteWithChildren
   '/ajuda': typeof AjudaRoute
   '/checkout': typeof CheckoutRoute
   '/corporate': typeof CorporateRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/suporte-painel': typeof SuportePainelRoute
   '/support': typeof SupportRoute
   '/validar-cupom': typeof ValidarCupomRoute
+  '/admin/diagnostico-asaas': typeof AdminDiagnosticoAsaasRoute
   '/cupons/$id': typeof CuponsIdRoute
   '/eventos/$id': typeof EventosIdRoute
   '/hospedagens/$id': typeof HospedagensIdRoute
@@ -293,6 +302,7 @@ export interface FileRouteTypes {
     | '/suporte-painel'
     | '/support'
     | '/validar-cupom'
+    | '/admin/diagnostico-asaas'
     | '/cupons/$id'
     | '/eventos/$id'
     | '/hospedagens/$id'
@@ -323,6 +333,7 @@ export interface FileRouteTypes {
     | '/suporte-painel'
     | '/support'
     | '/validar-cupom'
+    | '/admin/diagnostico-asaas'
     | '/cupons/$id'
     | '/eventos/$id'
     | '/hospedagens/$id'
@@ -353,6 +364,7 @@ export interface FileRouteTypes {
     | '/suporte-painel'
     | '/support'
     | '/validar-cupom'
+    | '/admin/diagnostico-asaas'
     | '/cupons/$id'
     | '/eventos/$id'
     | '/hospedagens/$id'
@@ -365,7 +377,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  AdminRoute: typeof AdminRoute
+  AdminRoute: typeof AdminRouteWithChildren
   AjudaRoute: typeof AjudaRoute
   CheckoutRoute: typeof CheckoutRoute
   CorporateRoute: typeof CorporateRoute
@@ -536,6 +548,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ValidarCupomRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin/diagnostico-asaas': {
+      id: '/admin/diagnostico-asaas'
+      path: '/diagnostico-asaas'
+      fullPath: '/admin/diagnostico-asaas'
+      preLoaderRoute: typeof AdminDiagnosticoAsaasRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/cupons/': {
       id: '/cupons/'
       path: '/cupons'
@@ -595,9 +614,19 @@ declare module '@tanstack/react-router' {
   }
 }
 
+interface AdminRouteChildren {
+  AdminDiagnosticoAsaasRoute: typeof AdminDiagnosticoAsaasRoute
+}
+
+const AdminRouteChildren: AdminRouteChildren = {
+  AdminDiagnosticoAsaasRoute: AdminDiagnosticoAsaasRoute,
+}
+
+const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  AdminRoute: AdminRoute,
+  AdminRoute: AdminRouteWithChildren,
   AjudaRoute: AjudaRoute,
   CheckoutRoute: CheckoutRoute,
   CorporateRoute: CorporateRoute,
