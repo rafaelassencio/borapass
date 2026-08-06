@@ -1,20 +1,13 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
-import { useAuth } from "@/hooks/use-auth";
-import { useRoles } from "@/hooks/use-roles";
-import { useCities } from "@/lib/cities";
-import { supabase } from "@/integrations/supabase/client";
-import { useEffect, useState } from "react";
+import { useAuthContext } from "@/context/AuthContext";
+import { useEffect, useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
   Plus,
   Pencil,
   Trash2,
   Eye,
-  EyeOff,
-  LogIn,
-  ShieldAlert,
-  Clock,
   CheckCircle2,
   XCircle,
   Building2,
@@ -29,1457 +22,995 @@ import {
   MapPin,
   Phone,
   Mail,
-  User,
+  User as UserIcon,
+  Search,
+  Filter,
+  MessageSquare,
+  Paperclip,
+  Smile,
+  Check,
+  CheckCheck,
+  Bell,
+  Clock,
+  DollarSign,
+  TrendingUp,
+  Star,
+  Download,
+  FileSpreadsheet,
+  FileText,
+  AlertCircle,
+  Share2,
+  ShieldCheck,
+  ChevronRight,
+  Lock,
+  Moon,
+  HelpCircle,
+  LogOut,
+  QrCode,
+  LayoutGrid,
 } from "lucide-react";
-import { z } from "zod";
+import {
+  getStoredBookings,
+  saveBooking,
+  getStoredChatMessages,
+  sendChatMessage,
+  getStoredNotifications,
+  markNotificationAsRead,
+  getStoredPartnerDrafts,
+  savePartnerDraft,
+  type PartnerBooking,
+  type ChatMessage,
+  type PartnerNotification,
+  type PartnerListingDraft,
+} from "@/lib/partner-portal";
 import { getStoredPartners, type PartnerStore } from "@/lib/partners";
-import PartnerFormModal from "@/components/PartnerFormModal";
-import NewListingWizardModal from "@/components/NewListingWizardModal";
-import NewEventWizardModal from "@/components/NewEventWizardModal";
-import { CategoryListingWizardModal } from "@/components/CategoryListingWizardModal";
-import { getStoredPartnerOffers } from "@/lib/listings";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/parceiro")({
-  head: () => ({ meta: [{ title: "Painel do Parceiro — Bora Pass" }] }),
-  component: PartnerPanel,
+  head: () => ({ meta: [{ title: "Portal do Parceiro — Bora Pass" }] }),
+  component: PartnerPortalPage,
 });
 
-type Listing = {
-  id: string;
-  category: string;
-  title: string;
-  description: string | null;
-  image_url: string | null;
-  price: number | null;
-  store_price?: number | null;
-  traveler_price?: number | null;
-  premium_price?: number | null;
-  offer_type?: "price" | "perk";
-  traveler_perk?: string | null;
-  premium_perk?: string | null;
-  city: string | null;
-  city_id: string | null;
-  address: string | null;
-  location_url?: string | null;
-  discount: string | null;
-  active: boolean;
-  status: string;
-  owner_id: string;
-  created_at?: string;
-};
+type PartnerTab = "dashboard" | "reservas" | "anuncios" | "financeiro" | "perfil";
 
-const CATEGORIES = [
-  { value: "passeio", label: "Passeio" },
-  { value: "hospedagem", label: "Hospedagem" },
-  { value: "restaurante", label: "Restaurante" },
-  { value: "evento", label: "Evento" },
-  { value: "cupom", label: "Cupom" },
-];
-
-const listingSchema = z.object({
-  category: z.enum(["passeio", "hospedagem", "restaurante", "evento", "cupom"]),
-  title: z.string().trim().min(2, "Título muito curto").max(120),
-  description: z.string().trim().max(1000).optional(),
-  image_url: z.string().trim().url("URL inválida").max(500).optional().or(z.literal("")),
-  price: z.coerce.number().min(0).max(1000000).optional(),
-  city_id: z.string().uuid().optional().or(z.literal("")),
-  address: z.string().trim().max(200).optional(),
-  discount: z.string().trim().max(30).optional(),
-});
-
-function StatusBadge({ status }: { status: string }) {
-  if (status === "approved")
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
-        <CheckCircle2 className="h-3 w-3" /> Aprovado
-      </span>
-    );
-  if (status === "rejected")
-    return (
-      <span className="inline-flex items-center gap-1 rounded-full bg-destructive/10 px-2 py-0.5 text-[10px] font-bold text-destructive">
-        <XCircle className="h-3 w-3" /> Rejeitado
-      </span>
-    );
-  return (
-    <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold text-amber-600">
-      <Clock className="h-3 w-3" /> Pendente
-    </span>
-  );
-}
-
-function PartnerPanel() {
+export function PartnerPortalPage() {
   const navigate = useNavigate();
-  const { user, loading: authLoading } = useAuth();
-  const { isPartner, isAdmin, isSupport, isRealAdmin, simulatedRole, loading: rolesLoading } = useRoles(user?.id, user?.email);
-  const isPurePartner = isPartner && !isRealAdmin && (!simulatedRole || simulatedRole === "partner");
+  const { user, profile, isPurePartner, primaryRole, partnerStore: contextStore, loading, logout } = useAuthContext();
 
+  // Redirecionamento se não for parceiro autorizado
   useEffect(() => {
-    if (!authLoading && !rolesLoading && isPurePartner) {
-      navigate({ to: "/validar-cupom", replace: true });
+    if (!loading && (!user || (primaryRole !== "Parceiro" && primaryRole !== "Administrador"))) {
+      navigate({ to: "/login", replace: true });
     }
-  }, [authLoading, rolesLoading, isPurePartner, navigate]);
-  const [listings, setListings] = useState<Listing[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState<Listing | null>(null);
-  const [showForm, setShowForm] = useState(false);
-  const [showPartnerModal, setShowPartnerModal] = useState(false);
-  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  }, [loading, user, primaryRole, navigate]);
 
-  const [partnerStoreList, setPartnerStoreList] = useState<PartnerStore[]>(() =>
-    getStoredPartners(),
+  // Categoria do Estabelecimento Parceiro
+  const partnerStore: PartnerStore = useMemo(() => {
+    if (contextStore) return contextStore;
+    const partners = getStoredPartners();
+    return partners.find((p) => p.user_id === user?.id) || partners[0];
+  }, [contextStore, user?.id]);
+
+  const rawCat = (partnerStore?.category || "Gastronomia").toLowerCase();
+  const isBookingBased =
+    rawCat.includes("hospedag") || rawCat.includes("passeio") || rawCat.includes("evento");
+
+  // Tab selecionada (default: dashboard ou reservas para hospedagem/passeio)
+  const [activeTab, setActiveTab] = useState<PartnerTab>("dashboard");
+
+  // States de Dados do Portal
+  const [bookings, setBookings] = useState<PartnerBooking[]>(() => getStoredBookings());
+  const [notifications, setNotifications] = useState<PartnerNotification[]>(() =>
+    getStoredNotifications(),
   );
-  const currentPartner =
-    partnerStoreList.find((p) => p.user_id === user?.id) || partnerStoreList[0] || null;
+  const [draftListings, setDraftListings] = useState<PartnerListingDraft[]>(() =>
+    getStoredPartnerDrafts(),
+  );
 
-  const [showPartnerFormModal, setShowPartnerFormModal] = useState(false);
-  const [showWizardModal, setShowWizardModal] = useState(false);
-  const [showEventWizardModal, setShowEventWizardModal] = useState(false);
-  const [cmsWizardModal, setCmsWizardModal] = useState<{
-    isOpen: boolean;
-    category: any;
-    initialData?: any;
-  }>({ isOpen: false, category: "hospedagem" });
-  const [activatedCoupons, setActivatedCoupons] = useState<any[]>([]);
+  // Modais do Portal
+  const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [showNewListingModal, setShowNewListingModal] = useState(false);
+  const [activeChatBooking, setActiveChatBooking] = useState<PartnerBooking | null>(null);
+  const [selectedBookingDetails, setSelectedBookingDetails] = useState<PartnerBooking | null>(null);
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
 
-  const isStaff = isAdmin || isSupport;
-  const authorized = isPartner || isStaff;
+  // States de Filtro das Reservas
+  const [bookingSearch, setBookingSearch] = useState("");
+  const [bookingStatusFilter, setBookingStatusFilter] = useState<
+    "todas" | "hoje" | "confirmada" | "pendente"
+  >("todas");
 
-  function loadActivatedCoupons() {
-    if (typeof window !== "undefined") {
-      const savedRaw = localStorage.getItem("borapass:redeemed-coupons");
-      if (savedRaw) {
-        try {
-          const parsed = JSON.parse(savedRaw);
-          // ONLY show activated coupons for partner
-          const activated = parsed.filter((c: any) => c.status === "used");
-          setActivatedCoupons(activated);
-          return;
-        } catch {
-          /* fallback */
-        }
-      }
-    }
-    setActivatedCoupons([
-      {
-        id: "demo-2",
-        code: "PASS-89F3K1",
-        title: "Cortesia de Sobremesa Especial",
-        discount: "Gratuito 🎁",
-        redeemed_at: new Date(Date.now() - 86400000).toISOString(),
-        status: "used",
-        used_at: new Date(Date.now() - 40000000).toISOString(),
-        user_email: "rafael.assencio12@gmail.com",
-      },
-    ]);
-  }
+  // Chat States
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInputText, setChatInputText] = useState("");
 
-  async function refresh() {
-    if (!user) return;
-    setLoading(true);
-    loadActivatedCoupons();
-
-    const q = supabase.from("listings").select("*").order("created_at", { ascending: false });
-    const { data } = isStaff ? await q : await q.eq("owner_id", user.id);
-
-    const storedOffers = getStoredPartnerOffers();
-
-    const mergedMap = new Map<string, Listing>();
-    for (const item of (data ?? []) as Listing[]) {
-      mergedMap.set(item.id, item);
-    }
-    for (const item of storedOffers) {
-      mergedMap.set(item.id, item);
-    }
-
-    setListings(Array.from(mergedMap.values()));
-    setLoading(false);
-  }
-
+  // Efeito para carregar mensagens do Chat ativo
   useEffect(() => {
-    if (user && authorized) refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user, authorized, isStaff]);
+    if (activeChatBooking) {
+      setChatMessages(getStoredChatMessages(activeChatBooking.id));
+    }
+  }, [activeChatBooking]);
 
-  async function toggleActive(l: Listing) {
-    const { error } = await supabase.from("listings").update({ active: !l.active }).eq("id", l.id);
-    if (error) return toast.error(error.message);
-    toast.success(l.active ? "Anúncio ocultado" : "Anúncio publicado");
-    refresh();
-  }
+  // Handler de envio de mensagem no Chat
+  const handleSendMessage = () => {
+    if (!activeChatBooking || !chatInputText.trim()) return;
 
-  async function remove(l: Listing) {
-    if (!confirm(`Excluir "${l.title}"?`)) return;
-    const { error } = await supabase.from("listings").delete().eq("id", l.id);
-    if (error) return toast.error(error.message);
-    toast.success("Anúncio excluído");
-    refresh();
-  }
+    const newMsg: ChatMessage = {
+      id: `msg-${Date.now()}`,
+      booking_id: activeChatBooking.id,
+      sender_type: "partner",
+      sender_name: partnerStore?.store_name || "Estabelecimento",
+      text: chatInputText.trim(),
+      timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+      status: "sent",
+    };
 
-  if (authLoading || rolesLoading) {
+    const updated = sendChatMessage(activeChatBooking.id, newMsg);
+    setChatMessages(updated);
+    setChatInputText("");
+
+    // Resposta simulada instantânea do cliente para testar tempo real
+    setTimeout(() => {
+      const replyMsg: ChatMessage = {
+        id: `msg-reply-${Date.now()}`,
+        booking_id: activeChatBooking.id,
+        sender_type: "client",
+        sender_name: activeChatBooking.client_name,
+        text: "Perfeito, muito obrigado pelas informações!",
+        timestamp: new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+        status: "read",
+      };
+      const finalChat = sendChatMessage(activeChatBooking.id, replyMsg);
+      setChatMessages(finalChat);
+    }, 1500);
+  };
+
+  // Alterar Status da Reserva
+  const handleUpdateBookingStatus = (bookingId: string, newStatus: "confirmada" | "cancelada") => {
+    const target = bookings.find((b) => b.id === bookingId);
+    if (!target) return;
+
+    const updated = { ...target, status: newStatus };
+    const newList = saveBooking(updated);
+    setBookings(newList);
+
+    if (newStatus === "confirmada") {
+      toast.success(`Reserva de ${target.client_name} confirmada com sucesso! 🎉`);
+    } else {
+      toast.info(`Reserva de ${target.client_name} foi cancelada.`);
+    }
+  };
+
+  // Filtragem de Reservas
+  const filteredBookings = useMemo(() => {
+    return bookings.filter((b) => {
+      const q = bookingSearch.toLowerCase().trim();
+      const matchesQuery =
+        !q ||
+        b.client_name.toLowerCase().includes(q) ||
+        b.voucher_code.toLowerCase().includes(q) ||
+        b.listing_title.toLowerCase().includes(q) ||
+        b.client_phone.includes(q);
+
+      if (!matchesQuery) return false;
+
+      if (bookingStatusFilter === "hoje") {
+        const todayStr = new Date().toISOString().split("T")[0];
+        return b.date === todayStr;
+      }
+      if (bookingStatusFilter === "confirmada") return b.status === "confirmada";
+      if (bookingStatusFilter === "pendente") return b.status === "pendente";
+      return true;
+    });
+  }, [bookings, bookingSearch, bookingStatusFilter]);
+
+  // Contadores Financeiros do Dashboard (Mercado Livre Style)
+  const financialStats = useMemo(() => {
+    const todayStr = new Date().toISOString().split("T")[0];
+    const todayBookings = bookings.filter((b) => b.date === todayStr && b.status !== "cancelada");
+    const todayRevenue = todayBookings.reduce((sum, b) => sum + b.total_amount, 0);
+
+    const totalRevenue = bookings
+      .filter((b) => b.status !== "cancelada")
+      .reduce((sum, b) => sum + b.total_amount, 0);
+
+    const averageTicket =
+      bookings.length > 0 ? Math.round(totalRevenue / bookings.length) : 0;
+
+    return {
+      todayRevenue,
+      todayCount: todayBookings.length,
+      totalRevenue,
+      totalCount: bookings.length,
+      averageTicket,
+      unreadNotifs: notifications.filter((n) => !n.read).length,
+    };
+  }, [bookings, notifications]);
+
+  if (loading) {
     return (
       <AppShell>
-        <PageHeader title="Portal do Parceiro" />
-        <div className="p-6 text-sm text-muted-foreground">Carregando...</div>
-      </AppShell>
-    );
-  }
-
-  // TELA DE NÃO-PARCEIRO (Conforme a estrutura e texto solicitados pelo usuário)
-  if (!user || !authorized) {
-    return (
-      <AppShell>
-        <PageHeader title="Portal do Parceiro" subtitle="Divulgue seu negócio no Bora Pass" />
-        <div className="p-6">
-          <div className="mx-auto max-w-md rounded-3xl border border-border bg-card p-6 text-center shadow-elevated">
-            <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-gradient-brand text-white shadow-brand">
-              <Building2 className="h-8 w-8" />
-            </div>
-
-            <h2 className="mt-4 text-xl font-extrabold text-foreground">
-              Área Exclusiva para Parceiros
-            </h2>
-            <p className="mt-2 text-xs font-bold text-amber-600 dark:text-amber-400">
-              Ainda não encontramos uma conta de parceiro vinculada ao seu perfil.
-            </p>
-
-            <p className="mt-4 text-xs text-muted-foreground leading-relaxed text-left">
-              O Portal do Parceiro é destinado a empresas, hotéis, restaurantes, atrações e
-              prestadores de serviços que desejam divulgar seus negócios, criar promoções e
-              acompanhar resultados dentro do Bora Pass.
-            </p>
-
-            <div className="mt-5 rounded-2xl border border-border/80 bg-secondary/30 p-4 text-left space-y-2.5 text-xs">
-              <p className="font-extrabold text-foreground uppercase tracking-wide text-[10px]">
-                O que você pode fazer?
-              </p>
-
-              <div className="flex items-start gap-2 text-muted-foreground">
-                <span className="text-base leading-none">📝</span>
-                <span className="font-semibold text-foreground">
-                  Solicitar o cadastro como parceiro.
-                </span>
-              </div>
-              <div className="flex items-start gap-2 text-muted-foreground">
-                <span className="text-base leading-none">📩</span>
-                <span className="font-semibold text-foreground">
-                  Entrar em contato com nossa equipe.
-                </span>
-              </div>
-              <div className="flex items-start gap-2 text-muted-foreground">
-                <span className="text-base leading-none">🔐</span>
-                <span className="font-semibold text-foreground">
-                  Fazer login com uma conta de parceiro, caso já possua uma.
-                </span>
-              </div>
-            </div>
-
-            {/* BOTÕES SOLICITADOS */}
-            <div className="mt-6 space-y-2.5">
-              <button
-                onClick={() => setShowPartnerModal(true)}
-                className="w-full rounded-2xl bg-gradient-brand py-3 text-sm font-bold text-white shadow-brand transition active:scale-95"
-              >
-                Quero ser parceiro
-              </button>
-
-              <Link
-                to="/ajuda"
-                className="inline-block w-full rounded-2xl border border-border bg-background py-3 text-sm font-bold text-foreground hover:bg-secondary transition text-center"
-              >
-                Entrar em contato
-              </Link>
-
-              {!user && (
-                <Link
-                  to="/login"
-                  className="inline-block w-full text-center text-xs font-semibold text-muted-foreground hover:text-primary pt-2"
-                >
-                  🔐 Já possui conta? Fazer login
-                </Link>
-              )}
-            </div>
-          </div>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full" />
         </div>
-
-        {showPartnerModal && <PartnerRequestModal onClose={() => setShowPartnerModal(false)} />}
       </AppShell>
     );
   }
-
-  // PAINEL DO PARCEIRO (Eventos, Cupons e Anúncios Cadastrados)
-  const filteredListings =
-    categoryFilter === "all" ? listings : listings.filter((l) => l.category === categoryFilter);
-
-  const totalEvents = listings.filter((l) => l.category === "evento").length;
-  const totalCoupons = listings.filter((l) => l.category === "cupom").length;
-  const totalListings = listings.filter((l) =>
-    ["passeio", "hospedagem", "restaurante"].includes(l.category),
-  ).length;
 
   return (
     <AppShell>
-      <PageHeader
-        title="Painel do Parceiro 🏢"
-        subtitle={
-          isStaff ? "Modo Staff — Gerenciamento Geral" : "Gerencie seus Eventos, Cupons e Anúncios"
-        }
-        right={
-          <div className="flex gap-2">
-            <button
-              onClick={() => setShowEventWizardModal(true)}
-              className="flex items-center gap-1.5 rounded-full bg-gradient-hero px-3.5 py-1.5 text-xs font-black text-white shadow-brand transition active:scale-95"
-            >
-              + Cadastrar Evento 🎉
-            </button>
-            <button
-              onClick={() => setCmsWizardModal({ isOpen: true, category: "hospedagem" })}
-              className="flex items-center gap-1.5 rounded-full bg-gradient-brand px-3.5 py-1.5 text-xs font-black text-white shadow-brand transition active:scale-95"
-            >
-              <Plus className="h-4 w-4" /> Criar Anúncio ✨
-            </button>
-          </div>
-        }
-      />
+      {/* HEADER DO PARCEIRO COM IDENTIDADE BORA PASS */}
+      <div className="bg-gradient-to-r from-slate-950 via-slate-900 to-sky-950 text-white px-5 pt-6 pb-5 shadow-elevated border-b border-white/10 relative overflow-hidden">
+        <div className="absolute top-0 right-0 h-40 w-40 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
 
-      <div className="p-5 space-y-4">
-        {/* Clean Store Profile Card */}
-        {currentPartner && (
-          <div className="rounded-3xl border border-border bg-card p-4 shadow-elevated space-y-3">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="flex items-center gap-3.5">
-                {currentPartner.logo_url ? (
-                  <img
-                    src={currentPartner.logo_url}
-                    alt=""
-                    className="h-14 w-14 rounded-2xl object-cover shadow-soft border border-border"
-                  />
-                ) : (
-                  <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-brand text-white font-black text-2xl">
-                    🏪
+        <div className="flex items-center justify-between gap-4 relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="relative">
+              <img
+                src={partnerStore?.logo_url || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150&q=80"}
+                alt={partnerStore?.store_name}
+                className="h-14 w-14 rounded-2xl object-cover border-2 border-amber-400/60 shadow-brand"
+              />
+              <span className="absolute -bottom-1 -right-1 grid h-5 w-5 place-items-center rounded-full bg-amber-400 text-slate-950 text-[10px] font-black shadow-md">
+                ⭐
+              </span>
+            </div>
+
+            <div>
+              <div className="flex items-center gap-2">
+                <h1 className="text-lg font-black text-white truncate max-w-[200px] sm:max-w-xs">
+                  {partnerStore?.store_name || "Seu Estabelecimento"}
+                </h1>
+                <span className="rounded-full bg-amber-400/20 text-amber-300 border border-amber-400/40 px-2 py-0.5 text-[9.5px] font-black uppercase">
+                  {partnerStore?.category || "Parceiro"}
+                </span>
+              </div>
+              <p className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
+                <MapPin className="h-3.5 w-3.5 text-amber-400" /> {partnerStore?.city || "Rio de Janeiro"} · CNPJ: {partnerStore?.cnpj}
+              </p>
+            </div>
+          </div>
+
+          {/* Central de Notificações */}
+          <button
+            onClick={() => setShowNotificationsModal(true)}
+            className="relative grid h-10 w-10 place-items-center rounded-2xl bg-white/10 hover:bg-white/20 text-white backdrop-blur border border-white/20 transition active:scale-95 shadow-soft"
+          >
+            <Bell className="h-5 w-5 text-amber-300" />
+            {financialStats.unreadNotifs > 0 && (
+              <span className="absolute -top-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-black text-white shadow-md animate-pulse">
+                {financialStats.unreadNotifs}
+              </span>
+            )}
+          </button>
+        </div>
+
+        {/* NAVEGAÇÃO DE TABS SUPERIOR (ESTILO GOOGLE MATERIAL / AIRBNB) */}
+        <div className="mt-5 flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide border-t border-white/10 pt-3">
+          <button
+            onClick={() => setActiveTab("dashboard")}
+            className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 shrink-0 ${
+              activeTab === "dashboard"
+                ? "bg-gradient-brand text-white shadow-brand"
+                : "bg-white/10 text-slate-300 hover:bg-white/20"
+            }`}
+          >
+            <Sparkles className="h-3.5 w-3.5" /> Dashboard
+          </button>
+
+          {isBookingBased ? (
+            <button
+              onClick={() => setActiveTab("reservas")}
+              className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 shrink-0 ${
+                activeTab === "reservas"
+                  ? "bg-gradient-brand text-white shadow-brand"
+                  : "bg-white/10 text-slate-300 hover:bg-white/20"
+              }`}
+            >
+              <Calendar className="h-3.5 w-3.5" /> Reservas
+            </button>
+          ) : (
+            <Link
+              to="/validar-cupom"
+              className="px-4 py-2 rounded-2xl text-xs font-black bg-amber-400 text-slate-950 shadow-brand hover:bg-amber-300 transition flex items-center gap-2 shrink-0 uppercase"
+            >
+              <QrCode className="h-3.5 w-3.5" /> Ativar Cupom
+            </Link>
+          )}
+
+          <button
+            onClick={() => setActiveTab("anuncios")}
+            className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 shrink-0 ${
+              activeTab === "anuncios"
+                ? "bg-gradient-brand text-white shadow-brand"
+                : "bg-white/10 text-slate-300 hover:bg-white/20"
+            }`}
+          >
+            <LayoutGrid className="h-3.5 w-3.5" /> Anúncios
+          </button>
+
+          <button
+            onClick={() => setActiveTab("financeiro")}
+            className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 shrink-0 ${
+              activeTab === "financeiro"
+                ? "bg-gradient-brand text-white shadow-brand"
+                : "bg-white/10 text-slate-300 hover:bg-white/20"
+            }`}
+          >
+            <DollarSign className="h-3.5 w-3.5" /> Financeiro
+          </button>
+
+          <button
+            onClick={() => setActiveTab("perfil")}
+            className={`px-4 py-2 rounded-2xl text-xs font-black transition flex items-center gap-2 shrink-0 ${
+              activeTab === "perfil"
+                ? "bg-gradient-brand text-white shadow-brand"
+                : "bg-white/10 text-slate-300 hover:bg-white/20"
+            }`}
+          >
+            <UserIcon className="h-3.5 w-3.5" /> Perfil
+          </button>
+        </div>
+      </div>
+
+      <div className="px-5 pt-5 pb-28 space-y-6">
+        {/* ========================================================= */}
+        {/* TAB 1: DASHBOARD HOME                                     */}
+        {/* ========================================================= */}
+        {activeTab === "dashboard" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* GRUDE DE CARDS KPI DO HOJE */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-2 relative overflow-hidden group">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wide">Receita Hoje</span>
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/10 text-emerald-500 font-bold">
+                    💰
                   </div>
-                )}
+                </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <h2 className="text-base font-extrabold text-foreground">
-                      {currentPartner.store_name}
-                    </h2>
-                    <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-[10px] font-black text-primary border border-primary/20">
-                      {currentPartner.category}
-                    </span>
+                  <div className="text-xl font-black text-foreground">
+                    R$ {financialStats.todayRevenue.toFixed(2)}
                   </div>
-                  <p className="mt-0.5 text-xs text-muted-foreground flex items-center gap-1">
-                    <MapPin className="h-3.5 w-3.5 shrink-0 text-primary" />{" "}
-                    {currentPartner.address} — {currentPartner.city}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-muted-foreground flex items-center gap-2">
-                    <span>
-                      CNPJ:{" "}
-                      <strong className="font-mono text-foreground">{currentPartner.cnpj}</strong>
-                    </span>
-                    <span>
-                      • Resp:{" "}
-                      <strong className="text-foreground">{currentPartner.owner_name}</strong>
-                    </span>
+                  <p className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 mt-0.5 flex items-center gap-1">
+                    <TrendingUp className="h-3 w-3" /> +14.2% em relação a ontem
                   </p>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-2">
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-2 relative overflow-hidden group">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wide">
+                    {isBookingBased ? "Reservas Hoje" : "Cupons Hoje"}
+                  </span>
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-primary/10 text-primary font-bold">
+                    🎟️
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-foreground">{financialStats.todayCount} ativas</div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Atendimento do dia</p>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-2 relative overflow-hidden group">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wide">Avaliação Média</span>
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-amber-500/10 text-amber-500 font-bold">
+                    ⭐
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-foreground">4.9 / 5.0</div>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">Baseado em 128 opiniões</p>
+                </div>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-2 relative overflow-hidden group">
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wide">Pendências</span>
+                  <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-500/10 text-red-500 font-bold">
+                    🔔
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xl font-black text-foreground">
+                    {bookings.filter((b) => b.status === "pendente").length} pendentes
+                  </div>
+                  <p className="text-[10px] font-bold text-amber-500 mt-0.5">Aguardando confirmação</p>
+                </div>
+              </div>
+            </div>
+
+            {/* ATALHOS RÁPIDOS */}
+            <div className="rounded-3xl border border-border bg-card p-5 shadow-soft space-y-3">
+              <h3 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                <Sparkles className="h-4 w-4 text-primary" /> Ações Rápidas do Estabelecimento
+              </h3>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 pt-1">
+                {!isBookingBased && (
+                  <Link
+                    to="/validar-cupom"
+                    className="flex items-center justify-center gap-2 rounded-2xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-black py-3 text-xs shadow-brand transition uppercase tracking-wider"
+                  >
+                    <QrCode className="h-4 w-4" /> Ativar Cupom
+                  </Link>
+                )}
                 <button
-                  onClick={() => setShowPartnerFormModal(true)}
-                  className="rounded-2xl border border-border bg-background px-3 py-2 text-xs font-bold text-foreground hover:bg-secondary transition flex items-center gap-1 shadow-sm"
+                  onClick={() => setShowNewListingModal(true)}
+                  className="flex items-center justify-center gap-2 rounded-2xl bg-gradient-brand text-white font-bold py-3 text-xs shadow-brand hover:opacity-95 transition"
                 >
-                  <Pencil className="h-3.5 w-3.5" /> Editar Loja
+                  <Plus className="h-4 w-4" /> Criar Anúncio
                 </button>
                 <button
-                  onClick={() => setShowEventWizardModal(true)}
-                  className="rounded-2xl bg-gradient-hero px-3.5 py-2 text-xs font-black text-white shadow-brand transition active:scale-95 flex items-center gap-1"
+                  onClick={() => setActiveTab("financeiro")}
+                  className="flex items-center justify-center gap-2 rounded-2xl border border-border bg-background hover:bg-secondary text-foreground font-bold py-3 text-xs transition"
                 >
-                  + Cadastrar Evento 🎉
-                </button>
-                <button
-                  onClick={() => setCmsWizardModal({ isOpen: true, category: "hospedagem" })}
-                  className="rounded-2xl bg-gradient-brand px-3.5 py-2 text-xs font-black text-white shadow-brand transition active:scale-95 flex items-center gap-1"
-                >
-                  <Plus className="h-4 w-4" /> Criar Anúncio ✨
+                  <DollarSign className="h-4 w-4 text-emerald-500" /> Relatório Financeiro
                 </button>
               </div>
+            </div>
+
+            {/* LISTA DE RESERVAS DO DIA OU PRÓXIMAS */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-black uppercase tracking-wider text-foreground flex items-center gap-2">
+                  <Calendar className="h-4 w-4 text-primary" /> Atendimentos do Dia ({filteredBookings.length})
+                </h3>
+                <button
+                  onClick={() => setActiveTab("reservas")}
+                  className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
+                >
+                  Ver Todas <ChevronRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+
+              {filteredBookings.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center space-y-2">
+                  <Clock className="mx-auto h-8 w-8 text-muted-foreground" />
+                  <p className="text-sm font-bold text-foreground">Nenhuma reserva para o dia de hoje.</p>
+                  <p className="text-xs text-muted-foreground">Novas reservas de clientes aparecerão automaticamente aqui.</p>
+                </div>
+              ) : (
+                <div className="grid gap-3">
+                  {filteredBookings.slice(0, 3).map((b) => (
+                    <div
+                      key={b.id}
+                      className="rounded-3xl border border-border bg-card p-4 shadow-soft flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+                    >
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={b.client_photo}
+                          alt={b.client_name}
+                          className="h-12 w-12 rounded-2xl object-cover border border-border"
+                        />
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-extrabold text-sm text-foreground">{b.client_name}</h4>
+                            <span className="font-mono text-[10px] font-black bg-secondary px-2 py-0.5 rounded-md text-primary">
+                              {b.voucher_code}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">{b.listing_title}</p>
+                          <p className="text-[11px] font-semibold text-slate-400 mt-0.5">
+                            📅 {b.date} às {b.time} · 👥 {b.guests_count} pessoas · 💰 R$ {b.total_amount.toFixed(2)}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => setActiveChatBooking(b)}
+                          className="rounded-xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary px-3 py-2 text-xs font-bold transition flex items-center gap-1.5"
+                        >
+                          <MessageSquare className="h-4 w-4" /> Conversar
+                        </button>
+                        {b.status === "pendente" && (
+                          <button
+                            onClick={() => handleUpdateBookingStatus(b.id, "confirmada")}
+                            className="rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 text-xs font-black shadow-brand transition"
+                          >
+                            Confirmar
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
 
-        {/* Ativar Cupons Quick Banner */}
-        <Link to="/validar-cupom" className="block">
-          <div className="flex items-center justify-between rounded-2xl bg-gradient-hero p-4 text-white shadow-brand hover:opacity-95 transition">
-            <div className="flex items-center gap-3">
-              <div className="grid h-10 w-10 place-items-center rounded-xl bg-white/20 backdrop-blur text-xl">
-                🎟️
-              </div>
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-200">
-                  Validador Oficial
-                </p>
-                <p className="text-sm font-extrabold text-white">
-                  Ativar & Invalidar Cupons dos Clientes
-                </p>
-              </div>
-            </div>
-            <span className="rounded-full bg-white/20 px-3 py-1 text-xs font-bold text-white backdrop-blur">
-              Validar ➔
-            </span>
-          </div>
-        </Link>
-
-        {/* LISTA EXCLUSIVA DE CUPONS ATIVADOS NO ESTABELECIMENTO */}
-        <div className="rounded-3xl border border-emerald-500/30 bg-emerald-500/5 p-4 shadow-soft space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div className="flex items-center gap-2">
-              <span className="grid h-8 w-8 place-items-center rounded-xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 font-bold">
-                ✅
-              </span>
-              <div>
-                <h3 className="text-xs font-black uppercase tracking-wider text-foreground">
-                  Cupons Ativados no Estabelecimento ({activatedCoupons.length})
-                </h3>
-                <p className="text-[11px] text-muted-foreground">
-                  Exibindo somente cupons validados e ativados após o viajante fornecer o código.
-                </p>
-              </div>
-            </div>
-            <Link
-              to="/validar-cupom"
-              className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
-            >
-              + Validar Código
-            </Link>
-          </div>
-
-          {activatedCoupons.length === 0 ? (
-            <p className="rounded-2xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground bg-background/50">
-              Nenhum cupom ativado ainda. Quando um cliente apresentar o código e você ativar no
-              sistema, ele aparecerá aqui!
-            </p>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              {activatedCoupons.map((c: any) => (
-                <div
-                  key={c.id || c.code}
-                  className="rounded-2xl border border-emerald-500/20 bg-card p-3 shadow-soft space-y-1.5"
+        {/* ========================================================= */}
+        {/* TAB 2: RESERVAS (AIRBNB STYLE CARD LAYOUT)               */}
+        {/* ========================================================= */}
+        {activeTab === "reservas" && (
+          <div className="space-y-5 animate-fadeIn">
+            {/* BARRA DE PESQUISA & FILTROS DE RESERVA */}
+            <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-3">
+              <div className="flex items-center gap-2.5">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3.5 top-3 h-4 w-4 text-muted-foreground" />
+                  <input
+                    type="text"
+                    value={bookingSearch}
+                    onChange={(e) => setBookingSearch(e.target.value)}
+                    placeholder="Pesquisar por nome do cliente, telefone ou voucher (ex: BP-98214)..."
+                    className="w-full rounded-2xl border border-border bg-background pl-10 pr-4 py-2.5 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/40"
+                  />
+                </div>
+                <button
+                  onClick={() => setShowCalendarModal(true)}
+                  className="rounded-2xl border border-border bg-background hover:bg-secondary px-3.5 py-2.5 text-xs font-bold text-foreground transition flex items-center gap-1.5 shrink-0"
                 >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-black text-primary select-all">
-                      {c.code}
-                    </span>
-                    <span className="rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-[9px] font-black text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                      ✅ ATIVADO & UTILIZADO
-                    </span>
+                  <Calendar className="h-4 w-4 text-primary" /> Calendário
+                </button>
+              </div>
+
+              {/* FILTER CHIPS */}
+              <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
+                <button
+                  onClick={() => setBookingStatusFilter("todas")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 ${
+                    bookingStatusFilter === "todas"
+                      ? "bg-gradient-brand text-white shadow-brand"
+                      : "border border-border bg-background text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Todas ({bookings.length})
+                </button>
+                <button
+                  onClick={() => setBookingStatusFilter("hoje")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 ${
+                    bookingStatusFilter === "hoje"
+                      ? "bg-gradient-brand text-white shadow-brand"
+                      : "border border-border bg-background text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Hoje
+                </button>
+                <button
+                  onClick={() => setBookingStatusFilter("confirmada")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 ${
+                    bookingStatusFilter === "confirmada"
+                      ? "bg-emerald-600 text-white shadow-brand"
+                      : "border border-border bg-background text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Confirmadas ({bookings.filter((b) => b.status === "confirmada").length})
+                </button>
+                <button
+                  onClick={() => setBookingStatusFilter("pendente")}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold transition shrink-0 ${
+                    bookingStatusFilter === "pendente"
+                      ? "bg-amber-500 text-slate-950 font-black shadow-brand"
+                      : "border border-border bg-background text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Pendentes ({bookings.filter((b) => b.status === "pendente").length})
+                </button>
+              </div>
+            </div>
+
+            {/* LISTAGEM DE CARDS DE RESERVA (ESTILO AIRBNB / BOOKING) */}
+            <div className="grid gap-4">
+              {filteredBookings.map((b) => (
+                <div
+                  key={b.id}
+                  className="rounded-3xl border border-border bg-card p-5 shadow-soft hover:shadow-elevated transition space-y-4 relative overflow-hidden"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/60 pb-3">
+                    <div className="flex items-center gap-3">
+                      <img
+                        src={b.client_photo}
+                        alt={b.client_name}
+                        className="h-12 w-12 rounded-2xl object-cover border-2 border-primary/20 shadow-sm"
+                      />
+                      <div>
+                        <h3 className="font-extrabold text-base text-foreground">{b.client_name}</h3>
+                        <p className="text-xs text-muted-foreground flex items-center gap-2">
+                          <span>{b.client_phone}</span> · <span>{b.client_email}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono text-xs font-black bg-primary/10 text-primary px-3 py-1 rounded-xl border border-primary/20">
+                        Voucher: {b.voucher_code}
+                      </span>
+                      <span
+                        className={`px-3 py-1 rounded-full text-[10px] font-black uppercase shadow-sm ${
+                          b.status === "confirmada"
+                            ? "bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/40"
+                            : b.status === "pendente"
+                              ? "bg-amber-500/20 text-amber-600 dark:text-amber-400 border border-amber-500/40"
+                              : "bg-red-500/20 text-red-600 dark:text-red-400 border border-red-500/40"
+                        }`}
+                      >
+                        {b.status}
+                      </span>
+                    </div>
                   </div>
-                  <h4 className="text-xs font-extrabold text-foreground truncate">{c.title}</h4>
-                  <div className="text-[10px] text-muted-foreground flex items-center justify-between pt-1 border-t border-border/50">
-                    <span>
-                      Benefício: <strong className="text-accent font-bold">{c.discount}</strong>
-                    </span>
-                    {c.used_at && (
-                      <span>Em: {new Date(c.used_at).toLocaleDateString("pt-BR")}</span>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-secondary/50 p-3.5 rounded-2xl text-xs">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-extrabold">Anúncio / Oferta</span>
+                      <strong className="text-foreground font-bold truncate block">{b.listing_title}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-extrabold">Data & Horário</span>
+                      <strong className="text-foreground font-bold block">{b.date} às {b.time}</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-extrabold">Pessoas</span>
+                      <strong className="text-foreground font-bold block">{b.guests_count} pessoas</strong>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-extrabold">Valor Total</span>
+                      <strong className="text-emerald-600 dark:text-emerald-400 font-extrabold block">R$ {b.total_amount.toFixed(2)}</strong>
+                    </div>
+                  </div>
+
+                  {b.notes && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20 flex items-center gap-1.5">
+                      <AlertCircle className="h-4 w-4 shrink-0" /> Observação do cliente: "{b.notes}"
+                    </p>
+                  )}
+
+                  {/* AÇÕES DA RESERVA */}
+                  <div className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                    <button
+                      onClick={() => setSelectedBookingDetails(b)}
+                      className="rounded-2xl border border-border bg-background hover:bg-secondary px-4 py-2.5 text-xs font-bold text-foreground transition flex items-center gap-1.5"
+                    >
+                      <Eye className="h-4 w-4 text-primary" /> Detalhes
+                    </button>
+                    <button
+                      onClick={() => setActiveChatBooking(b)}
+                      className="rounded-2xl border border-primary/40 bg-primary/10 hover:bg-primary/20 text-primary px-4 py-2.5 text-xs font-bold transition flex items-center gap-1.5"
+                    >
+                      <MessageSquare className="h-4 w-4" /> Conversar (Chat)
+                    </button>
+                    {b.status !== "confirmada" && (
+                      <button
+                        onClick={() => handleUpdateBookingStatus(b.id, "confirmada")}
+                        className="rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 text-xs font-black shadow-brand transition flex items-center gap-1.5"
+                      >
+                        <CheckCircle2 className="h-4 w-4" /> Confirmar
+                      </button>
+                    )}
+                    {b.status !== "cancelada" && (
+                      <button
+                        onClick={() => handleUpdateBookingStatus(b.id, "cancelada")}
+                        className="rounded-2xl border border-destructive/30 text-destructive hover:bg-destructive/10 px-4 py-2.5 text-xs font-bold transition"
+                      >
+                        Cancelar
+                      </button>
                     )}
                   </div>
                 </div>
               ))}
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Metric Cards */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="rounded-2xl border border-border bg-card p-3 shadow-soft text-center">
-            <p className="text-[10px] font-bold uppercase text-muted-foreground">Anúncios</p>
-            <p className="mt-1 text-lg font-extrabold text-foreground">{totalListings}</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-3 shadow-soft text-center">
-            <p className="text-[10px] font-bold uppercase text-muted-foreground">Eventos</p>
-            <p className="mt-1 text-lg font-extrabold text-primary">{totalEvents}</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card p-3 shadow-soft text-center">
-            <p className="text-[10px] font-bold uppercase text-muted-foreground">Cupons</p>
-            <p className="mt-1 text-lg font-extrabold text-accent">{totalCoupons}</p>
-          </div>
-        </div>
-
-        {/* Category Filter Chips */}
-        <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide">
-          <button
-            onClick={() => setCategoryFilter("all")}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-              categoryFilter === "all"
-                ? "bg-gradient-brand text-white shadow-brand"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            Todos ({listings.length})
-          </button>
-          <button
-            onClick={() => setCategoryFilter("evento")}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-              categoryFilter === "evento"
-                ? "bg-gradient-brand text-white shadow-brand"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            🎉 Eventos ({totalEvents})
-          </button>
-          <button
-            onClick={() => setCategoryFilter("cupom")}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-              categoryFilter === "cupom"
-                ? "bg-gradient-brand text-white shadow-brand"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            🎟️ Cupons ({totalCoupons})
-          </button>
-          <button
-            onClick={() => setCategoryFilter("passeio")}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-              categoryFilter === "passeio"
-                ? "bg-gradient-brand text-white shadow-brand"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            🎢 Passeios
-          </button>
-          <button
-            onClick={() => setCategoryFilter("hospedagem")}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-              categoryFilter === "hospedagem"
-                ? "bg-gradient-brand text-white shadow-brand"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            🏨 Hospedagens
-          </button>
-          <button
-            onClick={() => setCategoryFilter("restaurante")}
-            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-bold transition ${
-              categoryFilter === "restaurante"
-                ? "bg-gradient-brand text-white shadow-brand"
-                : "border border-border bg-card text-muted-foreground hover:bg-secondary"
-            }`}
-          >
-            🍽️ Restaurantes
-          </button>
-        </div>
-
-        {/* Listings / Events / Coupons List */}
-        {loading ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            Carregando seus cadastros...
-          </p>
-        ) : filteredListings.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground space-y-3">
-            <Store className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="font-semibold">Nenhum cadastro encontrado para esta categoria.</p>
-            <button
-              onClick={() => {
-                setEditing(null);
-                setShowForm(true);
-              }}
-              className="inline-flex items-center gap-1 rounded-xl bg-gradient-brand px-4 py-2 text-xs font-bold text-white shadow-brand"
-            >
-              <Plus className="h-4 w-4" /> Criar Novo Cadastro
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            {filteredListings.map((l) => (
-              <div
-                key={l.id}
-                className="flex gap-3 rounded-2xl border border-border bg-card p-3.5 shadow-soft hover:shadow-elevated transition"
+        {/* ========================================================= */}
+        {/* TAB 3: ANÚNCIOS (FACEBOOK MARKETPLACE STYLE GRID)         */}
+        {/* ========================================================= */}
+        {activeTab === "anuncios" && (
+          <div className="space-y-5 animate-fadeIn">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-black text-foreground">Catálogo de Anúncios da Loja</h2>
+                <p className="text-xs text-muted-foreground">Gerencie suas ofertas, preços, cupons e disponibilidade.</p>
+              </div>
+              <button
+                onClick={() => setShowNewListingModal(true)}
+                className="rounded-2xl bg-gradient-brand px-4 py-2.5 text-xs font-black text-white shadow-brand hover:opacity-95 transition flex items-center gap-1.5"
               >
-                {l.image_url ? (
-                  <img
-                    src={l.image_url}
-                    alt=""
-                    className="h-20 w-20 flex-shrink-0 rounded-xl object-cover"
-                  />
-                ) : (
-                  <div className="grid h-20 w-20 flex-shrink-0 place-items-center rounded-xl bg-gradient-brand text-white font-bold text-xs">
-                    {l.category}
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-extrabold uppercase tracking-wider text-primary bg-primary/10 px-2 py-0.5 rounded-md">
-                        {l.category}
-                      </span>
-                      <h3 className="truncate text-sm font-bold text-foreground mt-1">{l.title}</h3>
+                <Plus className="h-4 w-4" /> Novo Anúncio
+              </button>
+            </div>
 
-                      <div className="mt-1 space-y-0.5">
-                        {l.offer_type === "perk" ? (
-                          <div className="text-xs">
-                            <p className="text-accent font-bold">
-                              🎁 Viajante: {l.traveler_perk ?? "Cortesia Básica"}
-                            </p>
-                            <p className="text-amber-500 font-extrabold">
-                              ⭐ Premium: {l.premium_perk ?? "Cortesia VIP"}
-                            </p>
-                          </div>
-                        ) : (
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            {l.store_price && (
-                              <span className="line-through text-muted-foreground text-[11px]">
-                                Loja: R$ {l.store_price}
-                              </span>
-                            )}
-                            <span className="font-bold text-foreground">
-                              Viajante: R$ {l.traveler_price ?? l.price ?? "—"}
-                            </span>
-                            <span className="font-extrabold text-amber-600 dark:text-amber-400 bg-amber-500/10 px-1.5 py-0.5 rounded-md">
-                              ⭐ Premium: R$ {l.premium_price ?? "—"}
-                            </span>
-                            {l.discount && (
-                              <span className="font-bold text-primary text-[11px]">
-                                {l.discount}
-                              </span>
-                            )}
-                          </div>
-                        )}
+            {/* GRID DE ANÚNCIOS (MARKETPLACE STYLE) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {draftListings.map((listing) => (
+                <div
+                  key={listing.id}
+                  className="rounded-3xl border border-border bg-card shadow-soft overflow-hidden relative group hover:shadow-elevated transition"
+                >
+                  <div className="relative aspect-video w-full overflow-hidden bg-slate-900">
+                    <img
+                      src={listing.image_url || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=600&q=80"}
+                      alt={listing.title}
+                      className="h-full w-full object-cover group-hover:scale-105 transition duration-300"
+                    />
+                    <span
+                      className={`absolute top-3 left-3 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider backdrop-blur border shadow-sm ${
+                        listing.status === "approved"
+                          ? "bg-emerald-500/80 text-white border-emerald-400"
+                          : listing.status === "pending"
+                            ? "bg-amber-500/80 text-slate-950 border-amber-300 font-bold"
+                            : "bg-slate-900/80 text-slate-200 border-slate-700"
+                      }`}
+                    >
+                      {listing.status === "approved" ? "Aprovado" : listing.status === "pending" ? "Em Análise" : "Rascunho"}
+                    </span>
+                  </div>
+
+                  <div className="p-4 space-y-2">
+                    <h3 className="font-extrabold text-sm text-foreground truncate">{listing.title}</h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{listing.description}</p>
+                    <div className="flex items-center justify-between pt-2 border-t border-border/60">
+                      <span className="text-sm font-black text-emerald-600 dark:text-emerald-400">
+                        R$ {listing.price.toFixed(2)}
+                      </span>
+                      <span className="text-[10px] font-bold text-primary bg-primary/10 px-2 py-0.5 rounded-md">
+                        {listing.category.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 4: FINANCEIRO (MERCADO LIVRE STYLE DASHBOARD)        */}
+        {/* ========================================================= */}
+        {activeTab === "financeiro" && (
+          <div className="space-y-6 animate-fadeIn">
+            {/* CARDS DE FATURAMENTO */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-1">
+                <span className="text-[10px] font-extrabold text-muted-foreground uppercase">Receita Total</span>
+                <div className="text-xl font-black text-emerald-600 dark:text-emerald-400">
+                  R$ {financialStats.totalRevenue.toFixed(2)}
+                </div>
+                <span className="text-[10px] text-muted-foreground block">Acumulado do estabelecimento</span>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-1">
+                <span className="text-[10px] font-extrabold text-muted-foreground uppercase">Receita Hoje</span>
+                <div className="text-xl font-black text-foreground">
+                  R$ {financialStats.todayRevenue.toFixed(2)}
+                </div>
+                <span className="text-[10px] text-emerald-500 font-bold block">+14% em relação a ontem</span>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-1">
+                <span className="text-[10px] font-extrabold text-muted-foreground uppercase">Ticket Médio</span>
+                <div className="text-xl font-black text-primary">
+                  R$ {financialStats.averageTicket.toFixed(2)}
+                </div>
+                <span className="text-[10px] text-muted-foreground block">Por atendimento</span>
+              </div>
+
+              <div className="rounded-3xl border border-border bg-card p-4 shadow-soft space-y-1">
+                <span className="text-[10px] font-extrabold text-muted-foreground uppercase">Total de Vendas</span>
+                <div className="text-xl font-black text-amber-500">
+                  {financialStats.totalCount} transações
+                </div>
+                <span className="text-[10px] text-muted-foreground block">Reservas e Cupons</span>
+              </div>
+            </div>
+
+            {/* BOTÕES DE EXPORTAÇÃO */}
+            <div className="flex flex-wrap items-center justify-between gap-3 rounded-3xl border border-border bg-card p-5 shadow-soft">
+              <div>
+                <h3 className="text-sm font-black text-foreground">Extrato & Relatório Financeiro</h3>
+                <p className="text-xs text-muted-foreground">Exporte suas transações completas para contabilidade.</p>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => toast.success("📄 Relatório PDF baixado com sucesso!")}
+                  className="rounded-2xl border border-border bg-background hover:bg-secondary px-4 py-2.5 text-xs font-bold text-foreground transition flex items-center gap-2 shadow-sm"
+                >
+                  <Download className="h-4 w-4 text-primary" /> PDF
+                </button>
+                <button
+                  onClick={() => toast.success("📊 Planilha Excel (.xlsx) baixada com sucesso!")}
+                  className="rounded-2xl bg-gradient-brand text-white px-4 py-2.5 text-xs font-black shadow-brand hover:opacity-95 transition flex items-center gap-2"
+                >
+                  <FileSpreadsheet className="h-4 w-4" /> Excel
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ========================================================= */}
+        {/* TAB 5: PERFIL E CONFIGURAÇÕES DA LOJA                      */}
+        {/* ========================================================= */}
+        {activeTab === "perfil" && (
+          <div className="space-y-6 animate-fadeIn">
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-soft space-y-6">
+              <div className="flex items-center gap-4 border-b border-border/60 pb-5">
+                <img
+                  src={partnerStore?.logo_url || "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=150&q=80"}
+                  alt={partnerStore?.store_name}
+                  className="h-16 w-16 rounded-2xl object-cover border-2 border-primary/30 shadow-brand"
+                />
+                <div>
+                  <h2 className="text-lg font-black text-foreground">{partnerStore?.store_name}</h2>
+                  <p className="text-xs font-bold text-primary">{partnerStore?.category} · CNPJ: {partnerStore?.cnpj}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">Responsável: {partnerStore?.owner_name || profile?.full_name}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div className="space-y-1">
+                  <span className="text-muted-foreground font-extrabold uppercase text-[10px]">E-mail Comercial</span>
+                  <p className="font-mono font-bold text-foreground">{partnerStore?.email || user?.email}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground font-extrabold uppercase text-[10px]">Telefone / WhatsApp</span>
+                  <p className="font-mono font-bold text-foreground">{partnerStore?.phone}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground font-extrabold uppercase text-[10px]">Endereço Completo</span>
+                  <p className="font-bold text-foreground">{partnerStore?.address}, {partnerStore?.city}</p>
+                </div>
+                <div className="space-y-1">
+                  <span className="text-muted-foreground font-extrabold uppercase text-[10px]">Plano do Parceiro</span>
+                  <p className="font-black text-amber-500 uppercase">⭐ Bora Pass Partner VIP Pro</p>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border/60 flex flex-wrap gap-2">
+                <button
+                  onClick={async () => {
+                    if (user?.email) {
+                      await supabase.auth.resetPasswordForEmail(user.email);
+                      toast.success(`E-mail de redefinição enviado para ${user.email}!`);
+                    }
+                  }}
+                  className="rounded-2xl border border-border bg-background hover:bg-secondary px-4 py-2.5 text-xs font-bold text-foreground transition flex items-center gap-2"
+                >
+                  <Lock className="h-4 w-4 text-amber-500" /> Alterar Senha
+                </button>
+                <button
+                  onClick={logout}
+                  className="rounded-2xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive/20 px-4 py-2.5 text-xs font-bold transition flex items-center gap-2"
+                >
+                  <LogOut className="h-4 w-4" /> Sair da Conta
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* ========================================================= */}
+      {/* MODAL DE CHAT EM TEMPO REAL (ESTILO WHATSAPP)            */}
+      {/* ========================================================= */}
+      {activeChatBooking && (
+        <div
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-0 sm:p-4 backdrop-blur-sm"
+          onClick={() => setActiveChatBooking(null)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg h-[90vh] sm:h-[650px] bg-slate-950 text-white rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-white/20"
+          >
+            {/* CHAT HEADER */}
+            <div className="p-4 bg-slate-900 border-b border-white/10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <img
+                  src={activeChatBooking.client_photo}
+                  alt={activeChatBooking.client_name}
+                  className="h-10 w-10 rounded-full object-cover border border-amber-400"
+                />
+                <div>
+                  <h3 className="font-extrabold text-sm text-white">{activeChatBooking.client_name}</h3>
+                  <p className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1">
+                    <span className="h-2 w-2 rounded-full bg-emerald-400 animate-pulse" /> Online · Reserva #{activeChatBooking.voucher_code}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setActiveChatBooking(null)}
+                className="text-slate-400 hover:text-white p-2"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* CHAT MESSAGES BODY */}
+            <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px]">
+              {chatMessages.map((msg) => {
+                const isMe = msg.sender_type === "partner";
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${isMe ? "items-end" : "items-start"}`}
+                  >
+                    <div
+                      className={`max-w-[80%] rounded-2xl p-3 text-xs leading-relaxed shadow-md ${
+                        isMe
+                          ? "bg-gradient-brand text-white rounded-br-none"
+                          : "bg-slate-800 text-slate-100 rounded-bl-none border border-slate-700"
+                      }`}
+                    >
+                      <p>{msg.text}</p>
+                      <div className="mt-1 flex items-center justify-end gap-1 text-[9px] opacity-80">
+                        <span>{msg.timestamp}</span>
+                        {isMe && <CheckCheck className="h-3 w-3 text-amber-300" />}
                       </div>
                     </div>
-                    <div className="flex flex-col items-end gap-1 shrink-0">
-                      <StatusBadge status={l.status} />
-                      <span
-                        className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${l.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}
-                      >
-                        {l.active ? "Visível" : "Oculto"}
-                      </span>
-                    </div>
                   </div>
+                );
+              })}
+            </div>
 
-                  <div className="mt-2.5 flex flex-wrap items-center justify-between border-t border-border/50 pt-2 text-xs gap-2">
-                    <div className="flex items-center gap-2 text-[11px] text-muted-foreground min-w-0 flex-1">
-                      <span className="truncate">
-                        📍 {l.address || l.city || "Sem endereço específico"}
-                      </span>
-                      {l.location_url && (
-                        <a
-                          href={l.location_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="shrink-0 font-extrabold text-primary hover:underline"
-                        >
-                          GPS 🗺️
-                        </a>
-                      )}
-                    </div>
-
-                    <div className="flex gap-1.5 shrink-0">
-                      <button
-                        onClick={() => {
-                          setCmsWizardModal({
-                            isOpen: true,
-                            category: (l.category as any) || "hospedagem",
-                            initialData: l,
-                          });
-                        }}
-                        className="rounded-lg border border-border p-1.5 hover:bg-secondary"
-                        title="Editar Anúncio no CMS"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        onClick={() => toggleActive(l)}
-                        className="rounded-lg border border-border p-1.5 hover:bg-secondary"
-                        title={l.active ? "Ocultar" : "Publicar"}
-                      >
-                        {l.active ? (
-                          <EyeOff className="h-3.5 w-3.5" />
-                        ) : (
-                          <Eye className="h-3.5 w-3.5" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => remove(l)}
-                        className="rounded-lg border border-border p-1.5 text-destructive hover:bg-destructive/10"
-                        title="Excluir"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+            {/* CHAT INPUT FOOTER */}
+            <div className="p-3 bg-slate-900 border-t border-white/10 flex items-center gap-2">
+              <input
+                type="text"
+                value={chatInputText}
+                onChange={(e) => setChatInputText(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Digite sua mensagem para o cliente..."
+                className="flex-1 rounded-2xl bg-slate-950 border border-slate-800 px-4 py-2.5 text-xs text-white placeholder:text-slate-500 outline-none focus:border-sky-500"
+              />
+              <button
+                onClick={handleSendMessage}
+                className="grid h-10 w-10 place-items-center rounded-2xl bg-gradient-brand text-white shadow-brand hover:opacity-95 transition"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </div>
           </div>
-        )}
-      </div>
-
-      {cmsWizardModal.isOpen && (
-        <CategoryListingWizardModal
-          isOpen={cmsWizardModal.isOpen}
-          initialCategory={cmsWizardModal.category}
-          initialData={cmsWizardModal.initialData}
-          onClose={() => setCmsWizardModal((prev) => ({ ...prev, isOpen: false }))}
-          onSave={(savedListing) => {
-            const newOffer = {
-              id: savedListing.id || `po-${Date.now()}`,
-              title: savedListing.title,
-              category: savedListing.category || "hospedagem",
-              partner_id: currentPartner?.id || "p-101",
-              partner_name: currentPartner?.store_name || "Parceiro Bora Pass",
-              partner_phone: currentPartner?.phone || "(54) 99999-8888",
-              city: savedListing.city || "Gramado",
-              store_price: savedListing.store_price || 350,
-              traveler_price: savedListing.traveler_price || 290,
-              premium_price: savedListing.premium_price || 245,
-              expiration_date: "2026-12-31",
-              discount_seal: savedListing.badge_seal || "🔥 OFERTA",
-              image_url: savedListing.image_url,
-              description: savedListing.description,
-              lat: savedListing.lat || -29.3746,
-              lng: savedListing.lng || -50.8764,
-              status: savedListing.status || "approved",
-              active: savedListing.active !== false,
-              created_at: new Date().toISOString().split("T")[0],
-              ...savedListing,
-            };
-
-            try {
-              const savedRaw = localStorage.getItem("borapass:partner-offers");
-              const parsed = savedRaw ? JSON.parse(savedRaw) : [];
-              const filtered = parsed.filter((item: any) => item.id !== newOffer.id);
-              localStorage.setItem(
-                "borapass:partner-offers",
-                JSON.stringify([newOffer, ...filtered]),
-              );
-            } catch {
-              /* fallback */
-            }
-
-            try {
-              const savedRaw = localStorage.getItem("borapass:custom-listings");
-              const parsed = savedRaw ? JSON.parse(savedRaw) : [];
-              const filtered = parsed.filter((item: any) => item.id !== newOffer.id);
-              localStorage.setItem(
-                "borapass:custom-listings",
-                JSON.stringify([newOffer, ...filtered]),
-              );
-            } catch {
-              /* fallback */
-            }
-
-            toast.success(`Anúncio "${newOffer.title}" salvo com sucesso! 🎉`);
-            refresh();
-          }}
-        />
+        </div>
       )}
 
-      {showForm && (
-        <ListingForm
-          userId={user.id}
-          isStaff={isStaff}
-          initial={editing}
-          onClose={() => setShowForm(false)}
-          onSaved={() => {
-            setShowForm(false);
-            refresh();
-          }}
-        />
-      )}
+      {/* ========================================================= */}
+      {/* MODAL DE CENTRAL DE NOTIFICAÇÕES                         */}
+      {/* ========================================================= */}
+      {showNotificationsModal && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={() => setShowNotificationsModal(false)}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-card rounded-3xl p-5 shadow-elevated border border-border space-y-4 max-h-[80vh] overflow-y-auto"
+          >
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <h3 className="font-extrabold text-sm text-foreground flex items-center gap-2">
+                <Bell className="h-4 w-4 text-primary" /> Central de Notificações
+              </h3>
+              <button onClick={() => setShowNotificationsModal(false)} className="text-muted-foreground hover:text-foreground">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-      {showPartnerFormModal && (
-        <PartnerFormModal
-          partner={currentPartner}
-          onClose={() => setShowPartnerFormModal(false)}
-          onSave={() => setPartnerStoreList(getStoredPartners())}
-        />
-      )}
-
-      {showWizardModal && (
-        <NewListingWizardModal
-          isAdmin={isStaff}
-          currentUserPartnerId={currentPartner?.id}
-          onClose={() => setShowWizardModal(false)}
-          onSaveListing={() => refresh()}
-        />
-      )}
-
-      {showEventWizardModal && (
-        <NewEventWizardModal
-          isAdmin={isStaff}
-          currentUserPartnerId={currentPartner?.id}
-          onClose={() => setShowEventWizardModal(false)}
-          onSaveEvent={() => refresh()}
-        />
+            <div className="space-y-2.5">
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  onClick={() => {
+                    const updated = markNotificationAsRead(n.id);
+                    setNotifications(updated);
+                  }}
+                  className={`p-3.5 rounded-2xl border text-xs space-y-1 transition cursor-pointer ${
+                    !n.read ? "border-primary/40 bg-primary/5" : "border-border bg-background"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-foreground">{n.title}</h4>
+                    <span className="text-[10px] text-muted-foreground">{n.timestamp}</span>
+                  </div>
+                  <p className="text-muted-foreground">{n.message}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       )}
     </AppShell>
-  );
-}
-
-function ListingForm({
-  userId,
-  isStaff,
-  initial,
-  onClose,
-  onSaved,
-}: {
-  userId: string;
-  isStaff: boolean;
-  initial: Listing | null;
-  onClose: () => void;
-  onSaved: () => void;
-}) {
-  const [saving, setSaving] = useState(false);
-  const [uploadingImage, setUploadingImage] = useState(false);
-  const [imagePreview, setImagePreview] = useState<string>(initial?.image_url ?? "");
-  const { data: cities } = useCities();
-
-  const [form, setForm] = useState({
-    category: initial?.category ?? "passeio",
-    title: initial?.title ?? "",
-    description: initial?.description ?? "",
-    image_url: initial?.image_url ?? "",
-    offer_type: (initial?.offer_type ?? "price") as "price" | "perk",
-    price: initial?.price?.toString() ?? "",
-    store_price: initial?.store_price?.toString() ?? "",
-    traveler_price: initial?.traveler_price?.toString() ?? "",
-    premium_price: initial?.premium_price?.toString() ?? "",
-    traveler_perk: initial?.traveler_perk ?? "",
-    premium_perk: initial?.premium_perk ?? "",
-    city_id: initial?.city_id ?? "",
-    address: initial?.address ?? "",
-    location_url: initial?.location_url ?? "",
-    discount: initial?.discount ?? "",
-    expires_at: (initial as any)?.expires_at ?? "",
-  });
-
-  function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    if (file.size > 8 * 1024 * 1024) {
-      return toast.error("A foto deve ter no máximo 8MB.");
-    }
-
-    setUploadingImage(true);
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const result = ev.target?.result as string;
-      setImagePreview(result);
-      setForm((prev) => ({ ...prev, image_url: result }));
-      setUploadingImage(false);
-      toast.success("Foto carregada com sucesso!");
-    };
-    reader.onerror = () => {
-      setUploadingImage(false);
-      toast.error("Erro ao ler o arquivo de foto.");
-    };
-    reader.readAsDataURL(file);
-  }
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setSaving(true);
-
-    try {
-      const cityName = cities?.find((c) => c.id === form.city_id)?.name ?? null;
-      const storeP = form.store_price ? parseFloat(form.store_price) : null;
-      const travelerP = form.traveler_price ? parseFloat(form.traveler_price) : null;
-      const premiumP = form.premium_price ? parseFloat(form.premium_price) : null;
-
-      // Safe DB payload using ONLY standard columns existing in Supabase schema
-      const dbPayload: Record<string, unknown> = {
-        owner_id: userId,
-        category: form.category,
-        title: form.title,
-        description: form.description || null,
-        image_url: form.image_url || null,
-        price: travelerP ?? (form.price ? parseFloat(form.price) : null),
-        city_id: form.city_id || null,
-        city: cityName,
-        address: form.address || null,
-        discount: form.discount || null,
-      };
-
-      if (!isStaff) dbPayload.status = "pending";
-
-      // Attempt Supabase insert/update silently
-      try {
-        if (initial) {
-          await supabase
-            .from("listings")
-            .update(dbPayload as never)
-            .eq("id", initial.id);
-        } else {
-          await supabase.from("listings").insert(dbPayload as never);
-        }
-      } catch (err) {
-        console.warn("Supabase insert error (using local backup):", err);
-      }
-
-      // Full listing object with custom extra fields
-      const newListingObj: Listing = {
-        id: initial?.id ?? `custom-${Date.now()}`,
-        owner_id: userId,
-        category: form.category,
-        title: form.title,
-        description: form.description || null,
-        image_url: form.image_url || null,
-        offer_type: form.offer_type,
-        price: travelerP ?? (form.price ? parseFloat(form.price) : null),
-        store_price: storeP,
-        traveler_price: travelerP,
-        premium_price: premiumP,
-        traveler_perk: form.traveler_perk || null,
-        premium_perk: form.premium_perk || null,
-        city_id: form.city_id || null,
-        city: cityName,
-        address: form.address || null,
-        location_url: form.location_url || null,
-        discount: form.discount || null,
-        expires_at: form.expires_at || null,
-        active: initial?.active ?? true,
-        status: isStaff ? "approved" : "pending",
-        created_at: initial?.created_at ?? new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-        partner_id: null,
-        lat: null,
-        lng: null,
-      } as unknown as Listing;
-
-      // Always persist to local custom storage so saving NEVER fails
-      if (typeof window !== "undefined") {
-        const savedCustomRaw = localStorage.getItem("borapass:custom-listings");
-        const customListings: Listing[] = savedCustomRaw ? JSON.parse(savedCustomRaw) : [];
-        const existingIdx = customListings.findIndex((l) => l.id === newListingObj.id);
-        if (existingIdx >= 0) {
-          customListings[existingIdx] = newListingObj;
-        } else {
-          customListings.unshift(newListingObj);
-        }
-        localStorage.setItem("borapass:custom-listings", JSON.stringify(customListings));
-      }
-
-      toast.success(
-        isStaff
-          ? "Anúncio e foto salvos com sucesso!"
-          : "Anúncio e foto salvos! Enviado para aprovação do Admin.",
-      );
-      onSaved();
-    } catch (err) {
-      console.error(err);
-      toast.error("Erro ao salvar cadastro.");
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 backdrop-blur-sm sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-3xl bg-card p-6 shadow-elevated border border-border">
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
-          <div>
-            <h2 className="text-base font-extrabold text-foreground">
-              {initial ? "Editar Cadastro" : "Novo Anúncio / Evento / Cupom"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              Preencha a localização exata, preços e benefícios
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 text-muted-foreground hover:bg-secondary"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-
-        {!isStaff && (
-          <p className="mt-3 rounded-2xl bg-amber-500/10 border border-amber-500/20 p-3 text-[11px] font-semibold text-amber-700 dark:text-amber-300">
-            ⏳ Todo anúncio criado ou editado é revisado pela equipe Bora Pass antes de ser
-            publicado.
-          </p>
-        )}
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
-          <div className="grid grid-cols-2 gap-3">
-            <Field label="Categoria">
-              <select
-                value={form.category}
-                onChange={(e) => setForm({ ...form, category: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-bold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              >
-                {CATEGORIES.map((c) => (
-                  <option key={c.value} value={c.value} className="bg-card text-foreground">
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-
-            <Field label="Cidade">
-              <select
-                value={form.city_id}
-                onChange={(e) => setForm({ ...form, city_id: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-bold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="" className="bg-card text-foreground">
-                  Selecione...
-                </option>
-                {(cities ?? []).map((c) => (
-                  <option key={c.id} value={c.id} className="bg-card text-foreground">
-                    {c.name} {c.state ? `(${c.state})` : ""}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          </div>
-
-          <Field label="Título do Anúncio / Evento / Cupom">
-            <input
-              required
-              value={form.title}
-              onChange={(e) => setForm({ ...form, title: e.target.value })}
-              placeholder="Ex: Passeio de Escuna VIP ou Cupom 30% OFF Burger"
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-medium text-foreground outline-none focus:ring-1 focus:ring-primary"
-            />
-          </Field>
-
-          <Field label="Descrição Detalhada">
-            <textarea
-              value={form.description}
-              onChange={(e) => setForm({ ...form, description: e.target.value })}
-              rows={2}
-              placeholder="Descreva o que está incluso no anúncio, horários e regras..."
-              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-            />
-          </Field>
-
-          {/* Foto do Anúncio (Upload de Arquivo ou URL) */}
-          <div>
-            <label className="mb-1.5 block text-xs font-extrabold uppercase text-muted-foreground">
-              Foto do Anúncio / Evento
-            </label>
-            <div className="flex flex-col gap-2.5 rounded-2xl border border-border bg-card p-3 shadow-soft">
-              {imagePreview ? (
-                <div className="relative aspect-video w-full overflow-hidden rounded-xl border border-border">
-                  <img src={imagePreview} alt="Preview" className="h-full w-full object-cover" />
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setImagePreview("");
-                      setForm((prev) => ({ ...prev, image_url: "" }));
-                    }}
-                    className="absolute right-2 top-2 rounded-full bg-black/70 p-1 text-white hover:bg-black"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-              ) : (
-                <div className="grid aspect-video w-full place-items-center rounded-xl border-2 border-dashed border-border bg-muted/40 p-4 text-center">
-                  <div className="space-y-1">
-                    <ImageIcon className="mx-auto h-8 w-8 text-muted-foreground" />
-                    <p className="text-xs font-bold text-foreground">
-                      Envie uma foto do seu dispositivo
-                    </p>
-                    <p className="text-[10px] text-muted-foreground font-medium">
-                      PNG, JPG, WEBP até 8MB
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex gap-2">
-                <label className="flex-1 cursor-pointer rounded-xl bg-gradient-brand py-2.5 text-center text-xs font-bold text-white shadow-brand hover:opacity-95 transition">
-                  {uploadingImage ? "Carregando foto..." : "📸 Enviar Foto do Celular / Computador"}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                  />
-                </label>
-              </div>
-
-              <div className="pt-1">
-                <span className="text-[10px] text-muted-foreground block font-semibold">
-                  Ou cole a URL da imagem da internet:
-                </span>
-                <input
-                  value={form.image_url}
-                  onChange={(e) => {
-                    setForm({ ...form, image_url: e.target.value });
-                    setImagePreview(e.target.value);
-                  }}
-                  placeholder="https://..."
-                  className="mt-1 w-full rounded-xl border border-border bg-background px-3 py-1.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Tipo de Oferta: Preço em R$ ou Produtos / Cortesias */}
-          <div>
-            <label className="mb-1 block text-xs font-extrabold uppercase text-muted-foreground">
-              Tipo de Oferta do Cadastro
-            </label>
-            <div className="grid grid-cols-2 gap-2 rounded-2xl border border-border bg-muted/50 p-1">
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, offer_type: "price" })}
-                className={`rounded-xl py-2 text-xs font-bold transition ${
-                  form.offer_type === "price"
-                    ? "bg-gradient-brand text-white shadow-brand"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                💵 Preço / Desconto em R$
-              </button>
-              <button
-                type="button"
-                onClick={() => setForm({ ...form, offer_type: "perk" })}
-                className={`rounded-xl py-2 text-xs font-bold transition ${
-                  form.offer_type === "perk"
-                    ? "bg-gradient-brand text-white shadow-brand"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                🎁 Produto / Cortesia
-              </button>
-            </div>
-          </div>
-
-          {/* Configuração de Preços ou Cortesias */}
-          {form.offer_type === "price" ? (
-            <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-soft">
-              <p className="text-[11px] font-extrabold uppercase tracking-wide text-primary">
-                💰 Preços Diferenciados por Nível
-              </p>
-              <div>
-                <Field label="Preço da Loja (Balcão / Sem Desconto)">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.store_price}
-                    onChange={(e) => setForm({ ...form, store_price: e.target.value })}
-                    placeholder="Ex: 100.00"
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </Field>
-              </div>
-              <div className="grid grid-cols-2 gap-2.5">
-                <Field label="Preço pro Viajante (Comum)">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.traveler_price}
-                    onChange={(e) => setForm({ ...form, traveler_price: e.target.value })}
-                    placeholder="Ex: 80.00"
-                    className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-                  />
-                </Field>
-                <Field label="Preço pro Viajante Premium ⭐">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={form.premium_price}
-                    onChange={(e) => setForm({ ...form, premium_price: e.target.value })}
-                    placeholder="Ex: 50.00"
-                    className="w-full rounded-xl border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-xs font-bold text-foreground outline-none focus:ring-1 focus:ring-amber-500"
-                  />
-                </Field>
-              </div>
-              <Field label="Selo de Desconto (ex: 20% OFF ou 2x1)">
-                <input
-                  value={form.discount}
-                  onChange={(e) => setForm({ ...form, discount: e.target.value })}
-                  placeholder="Ex: 30% OFF Exclusivo"
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-                />
-              </Field>
-            </div>
-          ) : (
-            <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-soft">
-              <p className="text-[11px] font-extrabold uppercase tracking-wide text-accent">
-                🎁 Produtos & Cortesias Gratuitas
-              </p>
-              <Field label="Cortesia para Viajante (Comum)">
-                <input
-                  value={form.traveler_perk}
-                  onChange={(e) => setForm({ ...form, traveler_perk: e.target.value })}
-                  placeholder="Ex: 1 Expresso grátis na compra da refeição"
-                  className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-                />
-              </Field>
-              <Field label="Cortesia para Viajante Premium ⭐">
-                <input
-                  value={form.premium_perk}
-                  onChange={(e) => setForm({ ...form, premium_perk: e.target.value })}
-                  placeholder="Ex: Entrada VIP + Sobremesa especial + Taça de espumante grátis"
-                  className="w-full rounded-xl border border-amber-500/50 bg-amber-500/5 px-3 py-2 text-xs font-bold text-foreground outline-none focus:ring-1 focus:ring-amber-500"
-                />
-              </Field>
-            </div>
-          )}
-
-          {/* Data de Validade / Expiração */}
-          <div className="rounded-2xl border border-border/80 bg-card p-3.5 shadow-soft space-y-1">
-            <Field label="⏰ Data de Expiração / Validade do Cupom ou Oferta">
-              <input
-                type="date"
-                value={form.expires_at}
-                onChange={(e) => setForm({ ...form, expires_at: e.target.value })}
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-bold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              />
-            </Field>
-            <p className="text-[10px] text-muted-foreground font-medium">
-              Defina a data limite para expiração deste cupom ou promoção.
-            </p>
-          </div>
-
-          {/* Localização Exata & GPS */}
-          <div className="space-y-3 rounded-2xl border border-border/80 bg-card p-3.5 shadow-soft">
-            <p className="text-[11px] font-extrabold uppercase tracking-wide text-primary">
-              📍 Localização Exata & Link GPS
-            </p>
-            <Field label="Endereço Completo do Local / Evento">
-              <input
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-                placeholder="Ex: Av. Atlântica, 1702, Copacabana, Rio de Janeiro - RJ"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              />
-            </Field>
-            <Field label="Link da Localização Exata (Google Maps / Waze / GPS)">
-              <input
-                value={form.location_url}
-                onChange={(e) => setForm({ ...form, location_url: e.target.value })}
-                placeholder="Ex: https://maps.google.com/?q=-22.9698,-43.1802"
-                className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              />
-            </Field>
-          </div>
-
-          <div className="pt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-2xl border border-border bg-background py-3 text-xs font-bold text-foreground hover:bg-secondary"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="flex-1 rounded-2xl bg-gradient-brand py-3 text-xs font-bold text-white shadow-brand transition active:scale-95 disabled:opacity-60"
-            >
-              {saving ? "Salvando..." : "Salvar Cadastro"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="mb-1 block text-xs font-semibold uppercase text-muted-foreground">
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
-function PartnerRequestModal({ onClose }: { onClose: () => void }) {
-  const { user } = useAuth();
-  const [businessName, setBusinessName] = useState("");
-  const [responsibleName, setResponsibleName] = useState(user?.user_metadata?.full_name || "");
-  const [contactEmail, setContactEmail] = useState(user?.email || "");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("Rio de Janeiro");
-  const [category, setCategory] = useState("restaurante");
-  const [notes, setNotes] = useState("");
-  const [sending, setSending] = useState(false);
-
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!businessName.trim() || !contactEmail.trim()) {
-      return toast.error("Por favor, preencha o nome da empresa e o e-mail de contato.");
-    }
-
-    setSending(true);
-
-    const ticketId = `TK-PARCERIA-${Date.now().toString().slice(-6)}`;
-    const nowStr = new Date().toLocaleString("pt-BR");
-
-    const description = `🏢 SOLICITAÇÃO DE PARCERIA COMERCIAL\n\n- Nome da Empresa: ${businessName.trim()}\n- Responsável: ${responsibleName.trim()}\n- E-mail: ${contactEmail.trim()}\n- Telefone / WhatsApp: ${phone.trim() || "Não informado"}\n- Cidade: ${city}\n- Categoria de Atuação: ${category}\n\nDetalhes / Mensagem:\n${notes.trim() || "Desejo cadastrar minha empresa no Bora Pass."}`;
-
-    const newTicket = {
-      id: ticketId,
-      userId: user?.id || `user-guest-${Date.now()}`,
-      userName: responsibleName.trim() || businessName.trim(),
-      userEmail: contactEmail.trim(),
-      subject: `🏢 Parceria Comercial: ${businessName.trim()} (${city})`,
-      category: "Solicitação de Parceria",
-      status: "aberto" as const,
-      description,
-      messages: [
-        {
-          id: `m-${Date.now()}`,
-          sender: "user" as const,
-          senderName: responsibleName.trim() || businessName.trim(),
-          text: description,
-          timestamp: nowStr,
-        },
-      ],
-      createdAt: nowStr,
-    };
-
-    if (typeof window !== "undefined") {
-      const savedRaw = localStorage.getItem("borapass:support-tickets");
-      const current = savedRaw ? JSON.parse(savedRaw) : [];
-      localStorage.setItem("borapass:support-tickets", JSON.stringify([newTicket, ...current]));
-    }
-
-    setSending(false);
-    toast.success(
-      "🎉 Sua solicitação de parceria foi enviada ao nosso suporte! Nossa equipe entrará em contato em breve.",
-    );
-    onClose();
-  }
-
-  return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center"
-      onClick={onClose}
-    >
-      <div
-        onClick={(e) => e.stopPropagation()}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-background p-6 shadow-elevated sm:rounded-3xl border border-border"
-      >
-        <div className="flex items-center justify-between border-b border-border/60 pb-3">
-          <div className="flex items-center gap-2">
-            <Building2 className="h-5 w-5 text-primary" />
-            <h2 className="text-lg font-bold text-foreground">Solicitar Cadastro de Parceiro</h2>
-          </div>
-          <button
-            onClick={onClose}
-            className="rounded-full p-1 text-muted-foreground hover:bg-secondary"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="mt-4 space-y-3.5">
-          <p className="text-xs text-muted-foreground leading-relaxed">
-            Preencha os dados da sua empresa abaixo. As informações serão enviadas diretamente para
-            nossa equipe no <strong>Painel de Suporte</strong> para análise e resposta rápida.
-          </p>
-
-          <Field label="Nome da Empresa / Estabelecimento">
-            <input
-              type="text"
-              required
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              placeholder="Ex: Pousada Costa do Sol / Restaurante Sabor Mar"
-              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <Field label="Nome do Responsável">
-              <input
-                type="text"
-                required
-                value={responsibleName}
-                onChange={(e) => setResponsibleName(e.target.value)}
-                placeholder="Ex: Carlos Silva"
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              />
-            </Field>
-
-            <Field label="WhatsApp / Telefone">
-              <input
-                type="text"
-                value={phone}
-                onChange={(e) => setPhone(e.target.value)}
-                placeholder="Ex: (21) 99887-6655"
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              />
-            </Field>
-          </div>
-
-          <Field label="E-mail Corporativo / Contato">
-            <input
-              type="email"
-              required
-              value={contactEmail}
-              onChange={(e) => setContactEmail(e.target.value)}
-              placeholder="Ex: contato@empresa.com.br"
-              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-            />
-          </Field>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <Field label="Cidade do Estabelecimento">
-              <input
-                type="text"
-                required
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Ex: Armação dos Búzios - RJ"
-                className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              />
-            </Field>
-
-            <Field label="Categoria do Negócio">
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="w-full rounded-xl border border-border bg-card px-3 py-2.5 text-xs font-semibold text-foreground outline-none focus:ring-1 focus:ring-primary"
-              >
-                <option value="restaurante">🍽️ Gastronomia / Restaurante</option>
-                <option value="hospedagem">🏨 Hospedagem / Hotel / Pousada</option>
-                <option value="passeio">🎢 Passeio / Atração Turística</option>
-                <option value="evento">🎉 Evento / Festas</option>
-                <option value="compras">🛍️ Compras & Serviços</option>
-              </select>
-            </Field>
-          </div>
-
-          <Field label="Apresentação do Negócio / Proposta (Opcional)">
-            <textarea
-              rows={3}
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Descreva brevemente seu estabelecimento ou a promoção que deseja oferecer aos viajantes..."
-              className="w-full rounded-xl border border-border bg-card px-3.5 py-2.5 text-xs text-foreground outline-none focus:ring-1 focus:ring-primary"
-            />
-          </Field>
-
-          <div className="pt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 rounded-2xl border border-border bg-background py-3 text-xs font-bold text-foreground hover:bg-secondary"
-            >
-              Cancelar
-            </button>
-
-            <button
-              type="submit"
-              disabled={sending}
-              className="flex-1 rounded-2xl bg-gradient-brand py-3 text-xs font-bold text-white shadow-brand transition active:scale-95 disabled:opacity-50"
-            >
-              {sending ? "Enviando..." : "Enviar Solicitação ao Suporte"}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   );
 }

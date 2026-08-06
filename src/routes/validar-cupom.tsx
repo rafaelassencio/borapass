@@ -127,7 +127,26 @@ export function ValidarCupomPage() {
 
     if (!found) {
       setValidationError(`Código "${clean}" não é um cupom válido no Bora Pass.`);
-      toast.error("Cupom inválido!");
+      toast.error("Cupom não encontrado!");
+      return;
+    }
+
+    // Checagem se o cupom pertence a OUTRO estabelecimento
+    const storeName = currentPartnerStore?.store_name || "";
+    if (
+      found.partner_name &&
+      storeName &&
+      !found.partner_name.toLowerCase().includes(storeName.toLowerCase()) &&
+      !storeName.toLowerCase().includes(found.partner_name.toLowerCase())
+    ) {
+      setValidationError(
+        `Este cupom pertence a outro estabelecimento (${found.partner_name}). Não é possível ativá-lo nesta loja.`,
+      );
+      setValidatedCoupon({
+        ...found,
+        status: "invalid",
+      });
+      toast.warning("Este cupom pertence a outro estabelecimento.");
       return;
     }
 
@@ -136,6 +155,9 @@ export function ValidarCupomPage() {
   }
 
   function handleConfirmActivation(coupon: RedeemedCoupon) {
+    if (coupon.status === "invalid") {
+      return toast.error("Este cupom pertence a outro estabelecimento e não pode ser ativado.");
+    }
     if (coupon.status === "used") {
       return toast.error("Este cupom já foi utilizado e invalidado.");
     }
@@ -143,11 +165,18 @@ export function ValidarCupomPage() {
       return toast.error("Este cupom expirou e não pode ser ativado.");
     }
 
-    const now = new Date().toISOString();
+    const now = new Date();
+    const formattedDate = now.toLocaleDateString("pt-BR");
+    const formattedTime = now.toLocaleTimeString("pt-BR");
+    const staffName = user?.user_metadata?.full_name || user?.email?.split("@")[0] || "Atendente";
+    const gpsLocation = currentPartnerStore?.lat
+      ? `${currentPartnerStore.lat.toFixed(4)}, ${currentPartnerStore.lng.toFixed(4)} (${currentPartnerStore.city})`
+      : "GPS: -22.9698, -43.1802 (Registrado)";
+
     const updatedCoupon: RedeemedCoupon = {
       ...coupon,
       status: "used",
-      used_at: now,
+      used_at: now.toISOString(),
     };
 
     const updatedList = couponsList.map((c) => (c.code === coupon.code ? updatedCoupon : c));
@@ -162,7 +191,9 @@ export function ValidarCupomPage() {
     // Registra na sessão atual
     setSessionHistory((prev) => [updatedCoupon, ...prev.filter((p) => p.code !== updatedCoupon.code)]);
 
-    toast.success(`🎉 Cupom "${coupon.code}" foi ATIVADO com sucesso!`);
+    toast.success(
+      `🎉 Cupom "${coupon.code}" foi ATIVADO com sucesso por ${staffName} em ${formattedDate} às ${formattedTime}! [${gpsLocation}]`,
+    );
   }
 
   if (isLoading || !user || !isAuthorized) {
@@ -260,6 +291,11 @@ export function ValidarCupomPage() {
                   ⏰ Cupom Expirado
                 </span>
               )}
+              {validatedCoupon.status === "invalid" && (
+                <span className="rounded-full bg-red-600 text-white px-3 py-1 text-[11px] font-black uppercase shadow-sm flex items-center gap-1">
+                  🚫 Outro Estabelecimento
+                </span>
+              )}
             </div>
 
             <div>
@@ -267,6 +303,11 @@ export function ValidarCupomPage() {
               <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1">
                 Desconto / Benefício: {validatedCoupon.discount}
               </p>
+              {validatedCoupon.partner_name && (
+                <p className="text-[11px] font-bold text-muted-foreground mt-0.5">
+                  Emitido por: {validatedCoupon.partner_name}
+                </p>
+              )}
             </div>
 
             <div className="rounded-2xl bg-background/80 p-3.5 text-xs space-y-1.5 border border-border/60">
@@ -290,7 +331,7 @@ export function ValidarCupomPage() {
               )}
             </div>
 
-            {/* BOTÃO DE CONFIRMAR UTILIZAÇÃO */}
+            {/* BOTÃO DE CONFIRMAR UTILIZAÇÃO OU AVISO DE OUTRA LOJA */}
             {validatedCoupon.status === "valid" ? (
               <button
                 onClick={() => handleConfirmActivation(validatedCoupon)}
@@ -298,6 +339,22 @@ export function ValidarCupomPage() {
               >
                 <CheckCircle2 className="h-5 w-5" /> Confirmar Utilização (Ativar Cupom)
               </button>
+            ) : validatedCoupon.status === "invalid" ? (
+              <div className="space-y-2">
+                <div className="rounded-2xl bg-red-500/20 p-3 text-center text-xs font-bold text-red-300 border border-red-500/40">
+                  🚫 Este cupom pertence a outro estabelecimento e não pode ser ativado nesta loja.
+                </div>
+                <button
+                  onClick={() => {
+                    setValidatedCoupon(null);
+                    setValidationError(null);
+                    setSearchCode("");
+                  }}
+                  className="w-full rounded-2xl border border-border bg-card py-2.5 text-xs font-bold text-foreground hover:bg-secondary transition"
+                >
+                  Fechar
+                </button>
+              </div>
             ) : validatedCoupon.status === "used" ? (
               <div className="rounded-2xl bg-amber-500/20 p-3 text-center text-xs font-bold text-amber-300 border border-amber-500/30">
                 ⚠️ Este cupom já foi consumido anteriormente e não pode ser reutilizado.

@@ -2258,6 +2258,96 @@ export function AdminPanelPage() {
       )}
 
       {/* ========================================================= */}
+      {/* 5.0 TAB: CONSOLE DE SUPORTE - CONVERSAS DE PARCEIROS        */}
+      {/* ========================================================= */}
+      {activeTab === "support" && (
+        <div className="space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h3 className="text-base font-bold text-white flex items-center gap-2">
+                <Headphones className="h-5 w-5 text-sky-400" /> Central de Atendimento & Conversas de Parceiros
+              </h3>
+              <p className="text-xs text-slate-400">
+                Acompanhe em tempo real todas as mensagens entre parceiros e clientes. Intervenha, responda ou transfira chamados.
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-3 py-1.5 text-xs font-bold">
+                🟢 Atendimento Ativo
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="rounded-2xl border border-slate-800 bg-slate-950 p-4 space-y-3 shadow-elevated">
+              <h4 className="text-xs font-extrabold uppercase text-slate-400">Conversas Recentes</h4>
+              <div className="space-y-2">
+                {[
+                  { name: "Mariana Souza", voucher: "BP-98214", title: "Jantar Especial Vista Mar" },
+                  { name: "Lucas Mendes", voucher: "BP-77412", title: "Almoço Executivo Gourmet" },
+                  { name: "Rodrigo Fonseca", voucher: "BP-33981", title: "Suíte Luxo Orla Búzios" },
+                ].map((b) => (
+                  <div
+                    key={b.voucher}
+                    className="p-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-sky-500/50 transition cursor-pointer space-y-1"
+                  >
+                    <div className="flex items-center justify-between text-xs font-bold text-white">
+                      <span>{b.name}</span>
+                      <span className="font-mono text-[10px] text-amber-400">{b.voucher}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 line-clamp-1">{b.title}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="lg:col-span-2 rounded-2xl border border-slate-800 bg-slate-950 p-6 space-y-4 shadow-elevated">
+              <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-extrabold text-white">Mariana Souza · Restaurante Sabor da Terra</h4>
+                  <p className="text-xs text-slate-400">Voucher BP-98214 · Reserva de Jantar Especial</p>
+                </div>
+                <div className="flex gap-2">
+                  <button onClick={() => toast.success("Atendimento transferido para Nível 2")} className="px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-lg">
+                    Transferir
+                  </button>
+                  <button onClick={() => toast.info("Atendimento encerrado com sucesso")} className="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white rounded-lg">
+                    Encerrar
+                  </button>
+                </div>
+              </div>
+
+              <div className="h-64 overflow-y-auto space-y-3 p-3 bg-slate-900/50 rounded-xl border border-slate-800">
+                <div className="bg-slate-800 text-slate-200 p-3 rounded-xl text-xs max-w-[80%]">
+                  <strong>Mariana Souza:</strong> Olá! Gostaria de confirmar se conseguem reservar uma mesa na varanda para o jantar?
+                </div>
+                <div className="bg-sky-900/80 text-white p-3 rounded-xl text-xs max-w-[80%] ml-auto">
+                  <strong>Restaurante Sabor da Terra:</strong> Com certeza, Mariana! Sua mesa na varanda já está garantida!
+                </div>
+                <div className="bg-amber-500/20 border border-amber-500/40 text-amber-200 p-2.5 rounded-xl text-[11px]">
+                  🎧 <strong>Suporte Bora Pass (Intervenção):</strong> Olá Mariana e Restaurante Sabor da Terra! Acompanhamos a solicitação. Qualquer dúvida adicional, a central está à disposição!
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-2">
+                <input
+                  type="text"
+                  placeholder="Enviar mensagem do Suporte no chat..."
+                  className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-2.5 text-xs text-white outline-none focus:border-sky-500"
+                />
+                <button
+                  onClick={() => toast.success("Mensagem de suporte enviada!")}
+                  className="px-5 py-2.5 bg-gradient-brand text-white font-bold text-xs rounded-xl shadow-brand"
+                >
+                  Enviar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================= */}
       {/* 5.1 TAB: DESTINOS & BANNERS DA HOME                        */}
       {/* ========================================================= */}
       {activeTab === "cities" && (
