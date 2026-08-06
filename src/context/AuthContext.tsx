@@ -314,10 +314,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [fetchAllPermissions]);
 
   const isRealAdmin = useMemo(() => roles.includes("admin"), [roles]);
+  const isRealStaff = useMemo(() => roles.includes("admin") || roles.includes("support"), [roles]);
 
   const effectiveRoles = useMemo(() => {
     let list = [...roles];
-    if (isRealAdmin && simulatedRole && simulatedRole !== "all") {
+    if (isRealStaff && simulatedRole && simulatedRole !== "all") {
       if (simulatedRole === "user") list = ["user"];
       else if (simulatedRole === "premium") list = ["user", "premium"];
       else if (simulatedRole === "partner") list = ["partner", "user"];
@@ -326,7 +327,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         list = ["admin", "support", "partner", "user", "premium"];
     }
     return list;
-  }, [roles, isRealAdmin, simulatedRole]);
+  }, [roles, isRealStaff, simulatedRole]);
 
   const isAdmin = useMemo(() => effectiveRoles.includes("admin"), [effectiveRoles]);
   const isSupport = useMemo(() => effectiveRoles.includes("support"), [effectiveRoles]);
@@ -384,7 +385,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       primaryRole,
       roles: effectiveRoles,
       realRoles: roles,
-      simulatedRole: isRealAdmin ? simulatedRole : null,
+      simulatedRole: isRealStaff ? simulatedRole : null,
       isRealAdmin,
       isAdmin,
       isSupport,

@@ -640,7 +640,7 @@ export function Perfil() {
                   <span className="shrink-0 rounded-full bg-white/10 px-3 py-0.5 text-[10px] font-bold text-white animate-pulse">
                     Carregando perfil...
                   </span>
-                ) : isRealAdmin && simulatedRole ? (
+                ) : simulatedRole ? (
                   <div className="flex items-center gap-1.5">
                     <span className="shrink-0 rounded-full bg-sky-500/30 px-2.5 py-0.5 text-[10px] font-black text-sky-200 border border-sky-400/40">
                       🧳 {simulatedRole === "user" ? "Viajante" : simulatedRole === "premium" ? "Viajante Premium" : simulatedRole} (Modo Teste)
@@ -648,11 +648,11 @@ export function Perfil() {
                     <button
                       onClick={() => {
                         setRoleSimulation(null);
-                        toast.success("👑 Perfil Super Admin restaurado!");
+                        toast.success("👑 Perfil original restaurado!");
                       }}
                       className="shrink-0 rounded-full bg-amber-400 px-2 py-0.5 text-[10px] font-black text-black shadow-sm hover:bg-amber-300 transition"
                     >
-                      👑 Restaurar Admin
+                      👑 Restaurar Perfil
                     </button>
                   </div>
                 ) : isRealAdmin || isAdmin ? (

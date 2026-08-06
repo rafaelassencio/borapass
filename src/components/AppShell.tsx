@@ -7,12 +7,12 @@ import { toast } from "sonner";
 export function AppShell({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const { simulatedRole, realRoles, setRoleSimulation } = useRoles(user?.id, user?.email);
-  const isRealAdmin = realRoles.includes("admin");
+  const isStaffUser = realRoles.includes("admin") || realRoles.includes("support");
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      {/* Top Banner with Simulated Role for Admin Testing */}
-      {isRealAdmin && (
+      {/* Top Banner com Modo Teste de Experiencia para Admin e Suporte */}
+      {(isStaffUser || simulatedRole) && (
         <div className="sticky top-0 z-50 bg-slate-950 border-b border-amber-500/30 px-3 py-2 text-xs font-bold text-white shadow-elevated flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span className="flex items-center gap-1 text-amber-400 font-extrabold text-[11px] uppercase tracking-wider">

@@ -361,17 +361,17 @@ export function AdminLayout({
             </button>
 
             {/* Simulated Role Badge Switcher */}
-            {isRealAdmin && simulatedRole && (
+            {simulatedRole && (
               <div className="flex items-center gap-2 bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-xl text-xs">
                 <span className="text-amber-400 font-bold">Simulado: {simulatedRole}</span>
                 <button
                   onClick={() => {
                     setRoleSimulation(null);
-                    toast.success("Restaurado ao perfil de Administrador!");
+                    toast.success("Restaurado ao perfil original!");
                   }}
                   className="text-[10px] bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 px-2 py-0.5 rounded font-black uppercase transition"
                 >
-                  Restaurar Admin
+                  Restaurar Perfil
                 </button>
               </div>
             )}
