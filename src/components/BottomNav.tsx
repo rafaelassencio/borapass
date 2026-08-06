@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, CalendarDays, Heart, User, Ticket, ShieldAlert, Calendar, LayoutGrid, DollarSign, Plane } from "lucide-react";
+import { Home, Compass, CalendarDays, Heart, User, Ticket, ShieldAlert, Calendar, LayoutGrid, DollarSign, Plane, Hotel, Luggage } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/context/AuthContext";
 
@@ -11,15 +11,15 @@ type NavItem = {
 
 const travelerNavItems: NavItem[] = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/explorar", label: "Explorar", icon: Compass },
+  { to: "/hospedagens", label: "Hotéis", icon: Hotel },
   { to: "/passagens", label: "Passagens", icon: Plane },
-  { to: "/planejar", label: "Planejar", icon: CalendarDays },
+  { to: "/minhas-viagens", label: "Viagens", icon: Luggage },
   { to: "/perfil", label: "Perfil", icon: User },
 ];
 
 const adminNavItems: NavItem[] = [
   { to: "/", label: "Home", icon: Home },
-  { to: "/explorar", label: "Explorar", icon: Compass },
+  { to: "/hospedagens", label: "Hotéis", icon: Hotel },
   { to: "/passagens", label: "Passagens", icon: Plane },
   { to: "/admin", label: "Admin Console", icon: ShieldAlert },
   { to: "/perfil", label: "Perfil", icon: User },

@@ -17,8 +17,10 @@ import { Route as CorporateRouteImport } from './routes/corporate'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ExplorarRouteImport } from './routes/explorar'
 import { Route as FavoritosRouteImport } from './routes/favoritos'
+import { Route as HospedagensRouteImport } from './routes/hospedagens'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ManagementRouteImport } from './routes/management'
+import { Route as MinhasViagensRouteImport } from './routes/minhas-viagens'
 import { Route as PagamentosRouteImport } from './routes/pagamentos'
 import { Route as ParceiroRouteImport } from './routes/parceiro'
 import { Route as PassagensRouteImport } from './routes/passagens'
@@ -80,6 +82,11 @@ const FavoritosRoute = FavoritosRouteImport.update({
   path: '/favoritos',
   getParentRoute: () => rootRouteImport,
 } as any)
+const HospedagensRoute = HospedagensRouteImport.update({
+  id: '/hospedagens',
+  path: '/hospedagens',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
   path: '/login',
@@ -88,6 +95,11 @@ const LoginRoute = LoginRouteImport.update({
 const ManagementRoute = ManagementRouteImport.update({
   id: '/management',
   path: '/management',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MinhasViagensRoute = MinhasViagensRouteImport.update({
+  id: '/minhas-viagens',
+  path: '/minhas-viagens',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PagamentosRoute = PagamentosRouteImport.update({
@@ -171,14 +183,14 @@ const EventosIdRoute = EventosIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const HospedagensIndexRoute = HospedagensIndexRouteImport.update({
-  id: '/hospedagens/',
-  path: '/hospedagens/',
-  getParentRoute: () => rootRouteImport,
+  id: '/',
+  path: '/',
+  getParentRoute: () => HospedagensRoute,
 } as any)
 const HospedagensIdRoute = HospedagensIdRouteImport.update({
-  id: '/hospedagens/$id',
-  path: '/hospedagens/$id',
-  getParentRoute: () => rootRouteImport,
+  id: '/$id',
+  path: '/$id',
+  getParentRoute: () => HospedagensRoute,
 } as any)
 const PasseiosIndexRoute = PasseiosIndexRouteImport.update({
   id: '/passeios/',
@@ -200,8 +212,10 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/explorar': typeof ExplorarRoute
   '/favoritos': typeof FavoritosRoute
+  '/hospedagens': typeof HospedagensRouteWithChildren
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/minhas-viagens': typeof MinhasViagensRoute
   '/pagamentos': typeof PagamentosRoute
   '/parceiro': typeof ParceiroRoute
   '/passagens': typeof PassagensRoute
@@ -234,6 +248,7 @@ export interface FileRoutesByTo {
   '/favoritos': typeof FavoritosRoute
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/minhas-viagens': typeof MinhasViagensRoute
   '/pagamentos': typeof PagamentosRoute
   '/parceiro': typeof ParceiroRoute
   '/passagens': typeof PassagensRoute
@@ -265,8 +280,10 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/explorar': typeof ExplorarRoute
   '/favoritos': typeof FavoritosRoute
+  '/hospedagens': typeof HospedagensRouteWithChildren
   '/login': typeof LoginRoute
   '/management': typeof ManagementRoute
+  '/minhas-viagens': typeof MinhasViagensRoute
   '/pagamentos': typeof PagamentosRoute
   '/parceiro': typeof ParceiroRoute
   '/passagens': typeof PassagensRoute
@@ -299,8 +316,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explorar'
     | '/favoritos'
+    | '/hospedagens'
     | '/login'
     | '/management'
+    | '/minhas-viagens'
     | '/pagamentos'
     | '/parceiro'
     | '/passagens'
@@ -333,6 +352,7 @@ export interface FileRouteTypes {
     | '/favoritos'
     | '/login'
     | '/management'
+    | '/minhas-viagens'
     | '/pagamentos'
     | '/parceiro'
     | '/passagens'
@@ -363,8 +383,10 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/explorar'
     | '/favoritos'
+    | '/hospedagens'
     | '/login'
     | '/management'
+    | '/minhas-viagens'
     | '/pagamentos'
     | '/parceiro'
     | '/passagens'
@@ -396,8 +418,10 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   ExplorarRoute: typeof ExplorarRoute
   FavoritosRoute: typeof FavoritosRoute
+  HospedagensRoute: typeof HospedagensRouteWithChildren
   LoginRoute: typeof LoginRoute
   ManagementRoute: typeof ManagementRoute
+  MinhasViagensRoute: typeof MinhasViagensRoute
   PagamentosRoute: typeof PagamentosRoute
   ParceiroRoute: typeof ParceiroRoute
   PassagensRoute: typeof PassagensRoute
@@ -411,11 +435,9 @@ export interface RootRouteChildren {
   ValidarCupomRoute: typeof ValidarCupomRoute
   CuponsIdRoute: typeof CuponsIdRoute
   EventosIdRoute: typeof EventosIdRoute
-  HospedagensIdRoute: typeof HospedagensIdRoute
   PasseiosIdRoute: typeof PasseiosIdRoute
   CuponsIndexRoute: typeof CuponsIndexRoute
   EventosIndexRoute: typeof EventosIndexRoute
-  HospedagensIndexRoute: typeof HospedagensIndexRoute
   PasseiosIndexRoute: typeof PasseiosIndexRoute
 }
 
@@ -477,6 +499,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FavoritosRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/hospedagens': {
+      id: '/hospedagens'
+      path: '/hospedagens'
+      fullPath: '/hospedagens'
+      preLoaderRoute: typeof HospedagensRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/login': {
       id: '/login'
       path: '/login'
@@ -489,6 +518,13 @@ declare module '@tanstack/react-router' {
       path: '/management'
       fullPath: '/management'
       preLoaderRoute: typeof ManagementRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/minhas-viagens': {
+      id: '/minhas-viagens'
+      path: '/minhas-viagens'
+      fullPath: '/minhas-viagens'
+      preLoaderRoute: typeof MinhasViagensRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/pagamentos': {
@@ -605,17 +641,17 @@ declare module '@tanstack/react-router' {
     }
     '/hospedagens/': {
       id: '/hospedagens/'
-      path: '/hospedagens'
+      path: '/'
       fullPath: '/hospedagens/'
       preLoaderRoute: typeof HospedagensIndexRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof HospedagensRoute
     }
     '/hospedagens/$id': {
       id: '/hospedagens/$id'
-      path: '/hospedagens/$id'
+      path: '/$id'
       fullPath: '/hospedagens/$id'
       preLoaderRoute: typeof HospedagensIdRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof HospedagensRoute
     }
     '/passeios/': {
       id: '/passeios/'
@@ -644,6 +680,20 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface HospedagensRouteChildren {
+  HospedagensIdRoute: typeof HospedagensIdRoute
+  HospedagensIndexRoute: typeof HospedagensIndexRoute
+}
+
+const HospedagensRouteChildren: HospedagensRouteChildren = {
+  HospedagensIdRoute: HospedagensIdRoute,
+  HospedagensIndexRoute: HospedagensIndexRoute,
+}
+
+const HospedagensRouteWithChildren = HospedagensRoute._addFileChildren(
+  HospedagensRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AdminRoute: AdminRouteWithChildren,
@@ -653,8 +703,10 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   ExplorarRoute: ExplorarRoute,
   FavoritosRoute: FavoritosRoute,
+  HospedagensRoute: HospedagensRouteWithChildren,
   LoginRoute: LoginRoute,
   ManagementRoute: ManagementRoute,
+  MinhasViagensRoute: MinhasViagensRoute,
   PagamentosRoute: PagamentosRoute,
   ParceiroRoute: ParceiroRoute,
   PassagensRoute: PassagensRoute,
@@ -668,11 +720,9 @@ const rootRouteChildren: RootRouteChildren = {
   ValidarCupomRoute: ValidarCupomRoute,
   CuponsIdRoute: CuponsIdRoute,
   EventosIdRoute: EventosIdRoute,
-  HospedagensIdRoute: HospedagensIdRoute,
   PasseiosIdRoute: PasseiosIdRoute,
   CuponsIndexRoute: CuponsIndexRoute,
   EventosIndexRoute: EventosIndexRoute,
-  HospedagensIndexRoute: HospedagensIndexRoute,
   PasseiosIndexRoute: PasseiosIndexRoute,
 }
 export const routeTree = rootRouteImport

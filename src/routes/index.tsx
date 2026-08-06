@@ -629,6 +629,30 @@ export function Home() {
                 </p>
               </div>
             </div>
+
+            {/* BANNER EXCLUSIVO MÓDULO HOSPEDAGENS */}
+            <div
+              onClick={() => navigate({ to: "/hospedagens" })}
+              className="w-[280px] sm:w-[340px] h-[150px] shrink-0 snap-start cursor-pointer rounded-3xl border border-emerald-400/40 shadow-brand overflow-hidden relative group bg-slate-950"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1566073771259-6a8506099945?w=600&q=80"
+                alt="Hotéis e Hospedagens"
+                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-70"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-emerald-950/90 via-slate-950/70 to-amber-950/80" />
+              <div className="absolute inset-0 p-4 flex flex-col justify-end text-white space-y-1">
+                <span className="self-start rounded-full bg-emerald-500 px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-slate-950 shadow-brand">
+                  🏨 GeckoAPI Hotels
+                </span>
+                <h3 className="text-sm sm:text-base font-black leading-tight drop-shadow-md">
+                  Hotéis & Pousadas Exclusivos ✨
+                </h3>
+                <p className="text-[11px] text-emerald-300 font-bold opacity-90">
+                  Compare diárias com cancelamento grátis
+                </p>
+              </div>
+            </div>
             {heroBanners.map((b) => (
               <div
                 key={b.id}
