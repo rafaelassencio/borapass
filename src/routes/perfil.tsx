@@ -739,6 +739,29 @@ export function Perfil() {
                     </Link>
                   </div>
                 )}
+
+              {isPremium && (
+                <div className="mt-3 rounded-2xl border border-amber-500/50 bg-gradient-to-r from-amber-500/20 via-slate-900 to-slate-950 p-3.5 text-white text-xs flex items-center justify-between gap-3 shadow-elevated">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-9 w-9 place-items-center rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 font-bold shrink-0 text-base">
+                      👑
+                    </div>
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-black text-amber-300 text-[11px] uppercase tracking-wide">
+                          Viajante Premium (Especial & Exclusivo)
+                        </span>
+                        <span className="text-[9px] bg-amber-400/20 text-amber-200 border border-amber-400/40 px-1.5 py-0.2 rounded-md font-extrabold">
+                          VIP ⭐
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-300 mt-0.5">
+                        Acesso ilimitado e exclusivo a todas as viagens, roteiros e cupons do Bora Pass!
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

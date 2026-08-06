@@ -109,6 +109,17 @@ function CuponsList() {
           </div>
         )}
 
+        {isPremium && (
+          <div className="rounded-2xl border border-amber-500/40 bg-gradient-to-r from-amber-500/20 via-amber-950/40 to-slate-950 p-3 text-xs text-amber-200 flex items-center justify-between gap-2 shadow-soft">
+            <span className="font-bold text-[11px] flex items-center gap-1.5 text-amber-300">
+              👑 <strong>Viajante Premium:</strong> Acesso Ilimitado e Exclusivo a todos os cupons!
+            </span>
+            <span className="rounded-xl bg-amber-500/30 border border-amber-400/40 px-2.5 py-1 text-[9px] font-black uppercase text-amber-200 shadow-sm">
+              VIP EXCLUSIVO ⭐
+            </span>
+          </div>
+        )}
+
         {/* Navigation Tabs */}
         <div className="flex rounded-2xl bg-secondary p-1 border border-border">
           <button
