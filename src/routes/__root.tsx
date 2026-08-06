@@ -13,6 +13,8 @@ import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { AuthProvider, useAuthContext } from "@/context/AuthContext";
+import { SplashScreen } from "@/components/SplashScreen";
 
 function NotFoundComponent() {
   return (
@@ -131,6 +133,21 @@ function RootShell({ children }: { children: ReactNode }) {
   );
 }
 
+function AppContent() {
+  const { loading, isLoaded } = useAuthContext();
+
+  if (loading || !isLoaded) {
+    return <SplashScreen />;
+  }
+
+  return (
+    <>
+      <Outlet />
+      <Toaster position="top-center" richColors />
+    </>
+  );
+}
+
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const router = useRouter();
@@ -146,9 +163,9 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
-      <Toaster position="top-center" richColors />
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }
