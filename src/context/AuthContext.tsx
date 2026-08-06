@@ -51,25 +51,51 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const CACHE_SIMULATED_KEY = "borapass:simulated-role";
 const CACHE_LOCAL_SESSION_KEY = "borapass:local-session";
+const CACHE_AUTH_STATE_KEY = "borapass:cached-auth-state";
+
+type CachedAuthState = {
+  user: User | null;
+  profile: ProfileData | null;
+  roles: AppRole[];
+  subscription: any | null;
+};
+
+function readCachedAuthState(): CachedAuthState | null {
+  if (typeof window === "undefined") return null;
+  try {
+    const raw = localStorage.getItem(CACHE_AUTH_STATE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    /* fallback */
+  }
+  return null;
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [profile, setProfile] = useState<ProfileData | null>(null);
-  const [subscription, setSubscription] = useState<any | null>(null);
+  const initialCache = useMemo(() => readCachedAuthState(), []);
+
+  const [session, setSession] = useState<Session | null>(() => {
+    if (initialCache?.user) return { user: initialCache.user } as unknown as Session;
+    return null;
+  });
+  const [user, setUser] = useState<User | null>(() => initialCache?.user || null);
+  const [profile, setProfile] = useState<ProfileData | null>(() => initialCache?.profile || null);
+  const [subscription, setSubscription] = useState<any | null>(() => initialCache?.subscription || null);
   const [partnerStore, setPartnerStore] = useState<PartnerStore | null>(null);
-  const [roles, setRoles] = useState<AppRole[]>([]);
+  const [roles, setRoles] = useState<AppRole[]>(() => initialCache?.roles || ["user"]);
   const [simulatedRole, setSimulatedRoleState] = useState<string | null>(() => {
     if (typeof window !== "undefined") {
       return localStorage.getItem(CACHE_SIMULATED_KEY);
     }
     return null;
   });
-  const [loading, setLoading] = useState(true);
-  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Se houver cache inicial, inicia como carregado imediatamente (0ms de espera)
+  const [loading, setLoading] = useState<boolean>(() => !initialCache);
+  const [isLoaded, setIsLoaded] = useState<boolean>(() => !!initialCache);
   const [loadTimeMs, setLoadTimeMs] = useState(0);
 
-  // Escuta eventos de simulação de papel
+  // Listener para alteração de simulação de papel
   useEffect(() => {
     function handleStorage() {
       if (typeof window !== "undefined") {
@@ -84,16 +110,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  // Função central de carregamento de usuário, permissões, perfil e assinaturas
+  // Função central ultrarrápida de verificação de permissões com timeout agressivo de 600ms
   const fetchAllPermissions = useCallback(async () => {
     const startTime = performance.now();
     try {
-      let activeUser: User | null = null;
-      let activeSession: Session | null = null;
+      let activeUser: User | null = user;
+      let activeSession: Session | null = session;
 
-      // 1. Obter sessão do Supabase Auth
+      // 1. Resolver Supabase Auth com Timeout agressivo de 600ms
       try {
-        const { data: authData } = await supabase.auth.getSession();
+        const timeoutPromise = new Promise<{ data: { session: null } }>((resolve) =>
+          setTimeout(() => resolve({ data: { session: null } }), 600),
+        );
+        const authPromise = supabase.auth.getSession();
+        const { data: authData } = await Promise.race([authPromise, timeoutPromise]);
         if (authData?.session) {
           activeSession = authData.session;
           activeUser = authData.session.user;
@@ -102,7 +132,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         /* fallback */
       }
 
-      // 2. Fallback de sessão local caso desconectado sem Auth remoto
+      // 2. Fallback de sessão local caso não haja remoto
       if (!activeUser && typeof window !== "undefined") {
         try {
           const savedLocal = localStorage.getItem(CACHE_LOCAL_SESSION_KEY);
@@ -128,8 +158,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setPartnerStore(null);
         setIsLoaded(true);
         setLoading(false);
-        const endTime = performance.now();
-        setLoadTimeMs(Math.round(endTime - startTime));
+        if (typeof window !== "undefined") {
+          localStorage.removeItem(CACHE_AUTH_STATE_KEY);
+        }
         return;
       }
 
@@ -145,25 +176,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email === "admin@borapass.com.br";
       const isSuperAdminUid = uid === "u-admin-1" || uid === "u-1";
 
-      // 3. CONSULTA EM PARALELO (Promise.all) - profiles, user_roles, subscriptions, partners
-      const [profileRes, rolesRes, subRes] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, full_name, avatar_url, city")
-          .eq("id", uid)
-          .maybeSingle(),
+      // 3. CONSULTA EM PARALELO (Promise.all com timeout de 800ms)
+      const timeoutDbPromise = new Promise<{ profileRes: any; rolesRes: any; subRes: any }>((resolve) =>
+        setTimeout(
+          () => resolve({ profileRes: { data: null }, rolesRes: { data: null }, subRes: { data: null } }),
+          800,
+        ),
+      );
+
+      const dbPromise = Promise.all([
+        supabase.from("profiles").select("id, full_name, avatar_url, city").eq("id", uid).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", uid),
-        (supabase as any)
-          .from("subscriptions")
-          .select("*")
-          .eq("user_id", uid)
-          .eq("status", "ACTIVE")
-          .maybeSingle(),
-      ]);
+        (supabase as any).from("subscriptions").select("*").eq("user_id", uid).eq("status", "ACTIVE").maybeSingle(),
+      ]).then(([profileRes, rolesRes, subRes]) => ({ profileRes, rolesRes, subRes }));
+
+      const { profileRes, rolesRes, subRes } = await Promise.race([dbPromise, timeoutDbPromise]);
 
       // Montar objeto de Perfil
-      let userProfile: ProfileData | null = null;
-      if (profileRes.data) {
+      let userProfile: ProfileData | null = profile;
+      if (profileRes?.data) {
         userProfile = {
           id: profileRes.data.id,
           full_name: profileRes.data.full_name,
@@ -173,7 +204,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           phone: activeUser.phone || activeUser.user_metadata?.phone || null,
           cpf: activeUser.user_metadata?.cpf || null,
         };
-      } else {
+      } else if (!userProfile) {
         userProfile = {
           id: uid,
           full_name:
@@ -191,24 +222,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setProfile(userProfile);
 
       // Calcular Papéis Reais
-      let calculatedRoles: AppRole[] = ["user"];
+      let calculatedRoles: AppRole[] = roles.length > 0 ? [...roles] : ["user"];
 
       if (isSuperAdminEmail || isSuperAdminUid) {
         calculatedRoles = ["admin", "support", "partner", "user", "premium"];
-        if (uid && uid.length > 20) {
-          supabase
-            .from("user_roles")
-            .upsert({ user_id: uid, role: "admin" })
-            .then();
-        }
       } else {
-        if (!rolesRes.error && rolesRes.data && rolesRes.data.length > 0) {
-          const dbRoles = rolesRes.data.map((r) => r.role as AppRole);
-          calculatedRoles = Array.from(new Set([...calculatedRoles, ...dbRoles]));
+        if (rolesRes?.data && rolesRes.data.length > 0) {
+          const dbRoles = rolesRes.data.map((r: any) => r.role as AppRole);
+          calculatedRoles = Array.from(new Set(["user", ...dbRoles]));
         }
 
-        // Validação da Assinatura Premium ativa
-        if (!subRes.error && subRes.data) {
+        if (subRes?.data) {
           const sub = subRes.data;
           setSubscription(sub);
           const isNotExpired = !sub.next_due_date || new Date(sub.next_due_date).getTime() >= Date.now();
@@ -217,15 +241,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               calculatedRoles.push("premium");
             }
           }
-        } else {
-          setSubscription(null);
         }
       }
 
       // Validação de Loja de Parceiro
       const partnerStores = getStoredPartners();
-      const matchedStore =
-        partnerStores.find((p) => p.user_id === uid) || partnerStores[0] || null;
+      const matchedStore = partnerStores.find((p) => p.user_id === uid) || partnerStores[0] || null;
       setPartnerStore(matchedStore);
 
       setRoles(calculatedRoles);
@@ -236,14 +257,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const elapsed = Math.round(endTime - startTime);
       setLoadTimeMs(elapsed);
 
-      // LOG DE DIAGNÓSTICO PROFISSIONAL
+      // Salvar estado em cache local para inicialização instantânea a 0ms
+      if (typeof window !== "undefined") {
+        try {
+          localStorage.setItem(
+            CACHE_AUTH_STATE_KEY,
+            JSON.stringify({
+              user: activeUser,
+              profile: userProfile,
+              roles: calculatedRoles,
+              subscription: subRes?.data || null,
+            }),
+          );
+        } catch {
+          /* fallback */
+        }
+      }
+
       console.log(
-        `[Bora Pass Auth] User: ${email || uid} | Roles: [${calculatedRoles.join(
+        `[Bora Pass Auth Fast] User: ${email || uid} | Roles: [${calculatedRoles.join(
           ", ",
         )}] | Load Time: ${elapsed}ms`,
       );
     } catch (err) {
-      console.error("[Bora Pass Auth Error]", err);
+      console.error("[Bora Pass Auth Fast Error]", err);
       setIsLoaded(true);
       setLoading(false);
     }
@@ -278,7 +315,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const isRealAdmin = useMemo(() => roles.includes("admin"), [roles]);
 
-  // Papéis Efetivos com base na Simulação do Admin
   const effectiveRoles = useMemo(() => {
     let list = [...roles];
     if (isRealAdmin && simulatedRole && simulatedRole !== "all") {
@@ -302,7 +338,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [isPartner, isRealAdmin, simulatedRole],
   );
 
-  // Determinar o Perfil Principal com base na Hierarquia de Prioridades
   const primaryRole: PrimaryRole = useMemo(() => {
     if (isAdmin) return "Administrador";
     if (isSupport) return "Suporte";
@@ -330,11 +365,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== "undefined") {
       localStorage.removeItem(CACHE_LOCAL_SESSION_KEY);
       localStorage.removeItem(CACHE_SIMULATED_KEY);
+      localStorage.removeItem(CACHE_AUTH_STATE_KEY);
       localStorage.removeItem("borapass:cached-roles");
       window.dispatchEvent(new Event("borapass:auth-changed"));
     }
     setUser(null);
     setSession(null);
+    setProfile(null);
+    setSubscription(null);
     setRoles(["user"]);
   }, []);
 

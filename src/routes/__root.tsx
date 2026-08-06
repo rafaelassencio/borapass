@@ -7,7 +7,7 @@ import {
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -135,8 +135,16 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function AppContent() {
   const { loading, isLoaded } = useAuthContext();
+  const [maxTimeoutReached, setMaxTimeoutReached] = useState(false);
 
-  if (loading || !isLoaded) {
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setMaxTimeoutReached(true);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if ((loading || !isLoaded) && !maxTimeoutReached) {
     return <SplashScreen />;
   }
 
