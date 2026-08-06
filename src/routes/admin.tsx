@@ -3142,11 +3142,11 @@ export function AdminPanelPage() {
                   <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
                     Central de Gestão de APIs & Integrações
                     <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono uppercase">
-                      6 APIs CONECTADAS
+                      5 APIs CONECTADAS
                     </span>
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Gerencie credenciais e webhooks do Asaas Gateway, Supabase, Mapas e Clima
+                    Gerencie credenciais e webhooks do Asaas Gateway, Supabase, Suporte e Clima
                   </p>
                 </div>
               </div>
@@ -3225,7 +3225,7 @@ export function AdminPanelPage() {
             </div>
 
             {/* B.2: DEMAIS INTEGRATION APIS DO SISTEMA */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
               <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-sky-400 flex items-center gap-1.5">
@@ -3252,21 +3252,6 @@ export function AdminPanelPage() {
                   disabled={!isAdmin}
                   value={climatempoToken}
                   onChange={(e) => setClimatempoToken(e.target.value)}
-                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
-                />
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-emerald-400 flex items-center gap-1.5">
-                    <MapPin className="h-3.5 w-3.5" /> Google Maps & OpenStreetMap API
-                  </span>
-                  <span className="text-[9px] text-emerald-400 font-mono font-bold">200 OK</span>
-                </div>
-                <input
-                  disabled={!isAdmin}
-                  value={googleMapsKey}
-                  onChange={(e) => setGoogleMapsKey(e.target.value)}
                   className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
                 />
               </div>
@@ -4251,7 +4236,7 @@ function SystemApiManagementModal({
     setTimeout(() => {
       setTestingConnection(false);
       toast.success(
-        "✅ Teste de Conexão Concluído! Todas as 6 APIs (Asaas Gateway, Supabase, Climatempo, Google Maps, Zendesk, Resend) estão respondendo com status 200 OK (Latência Média: 16ms).",
+        "✅ Teste de Conexão Concluído! Todas as 5 APIs (Asaas Gateway, Supabase, Climatempo, Zendesk, Resend) estão respondendo com status 200 OK (Latência Média: 15ms).",
       );
     }, 1200);
   };
@@ -4434,46 +4419,11 @@ function SystemApiManagementModal({
             </div>
           </div>
 
-          {/* API 4: MAPS & LOCATION */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-3">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-              <span className="font-extrabold text-emerald-400 flex items-center gap-2">
-                <MapPin className="h-4 w-4" /> 4. Google Maps & Geocoding API
-              </span>
-              <span className="text-[10px] text-emerald-400 font-bold font-mono">
-                🟢 Geocoding OK
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block font-bold text-slate-300">
-                  Google Maps JavaScript Key
-                </label>
-                <input
-                  disabled={!isAdmin}
-                  value={googleMapsKey}
-                  onChange={(e) => setGoogleMapsKey(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-white font-mono outline-none"
-                />
-              </div>
-              <div>
-                <label className="mb-1 block font-bold text-slate-300">
-                  Distance Matrix Endpoint
-                </label>
-                <input
-                  disabled
-                  value="https://maps.googleapis.com/maps/api/distancematrix"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950/60 px-3.5 py-2 text-slate-400 font-mono outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* API 5 & 6: SUPORTE & RESEND */}
+          {/* API 4 & 5: SUPORTE & RESEND */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
               <span className="font-extrabold text-purple-400 flex items-center gap-2">
-                <Headphones className="h-4 w-4" /> 5. Zendesk & WhatsApp Support API
+                <Headphones className="h-4 w-4" /> 4. Zendesk & WhatsApp Support API
               </span>
               <input
                 disabled={!isAdmin}
@@ -4484,11 +4434,12 @@ function SystemApiManagementModal({
             </div>
 
             <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-4 space-y-2">
-              <span className="font-extrabold text-rose-400 flex items-center gap-2">
-                <Mail className="h-4 w-4" /> 6. Resend Transactional Email API
+              <span className="font-extrabold text-sky-400 flex items-center gap-2">
+                <Mail className="h-4 w-4" /> 5. Resend Transactional Email API
               </span>
               <input
                 disabled={!isAdmin}
+                type="password"
                 value={resendApiKey}
                 onChange={(e) => setResendApiKey(e.target.value)}
                 className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-white font-mono outline-none"
