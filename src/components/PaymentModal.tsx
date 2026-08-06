@@ -3,9 +3,10 @@
  * Modal completo de pagamento: PIX ou Cartão.
  * Coleta dados do cliente, exibe QR Code, polling em tempo real.
  */
+import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import {
-  X, QrCode, CreditCard, Sparkles, ShieldCheck,
+  X, QrCode, CreditCard, Sparkles, ShieldCheck, Receipt,
   Loader2, CheckCircle2, ChevronRight, Lock, User, Phone, Mail, MapPin
 } from "lucide-react";
 import { useAsaas } from "@/hooks/use-asaas";
@@ -38,6 +39,7 @@ export function PaymentModal({
 }: PaymentModalProps) {
   const { user } = useAuth();
   const asaas = useAsaas();
+  const navigate = useNavigate();
 
   const [step, setStep] = useState<Step>("method");
   const [paymentMethod, setPaymentMethod] = useState<"pix" | "card">("pix");
@@ -407,12 +409,24 @@ export function PaymentModal({
                   : "Pagamento confirmado! Aproveite sua experiência."}
               </p>
             </div>
-            <button
-              onClick={handleClose}
-              className="rounded-2xl bg-gradient-brand px-6 py-3 text-sm font-bold text-white shadow-brand"
-            >
-              Continuar explorando ✨
-            </button>
+
+            <div className="w-full space-y-2 pt-2">
+              <button
+                onClick={() => {
+                  handleClose();
+                  navigate({ to: "/pagamentos" });
+                }}
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-gradient-brand py-3.5 text-sm font-bold text-white shadow-brand"
+              >
+                <Receipt className="h-4 w-4" /> Ver Histórico Financeiro
+              </button>
+              <button
+                onClick={handleClose}
+                className="w-full rounded-2xl border border-border py-3 text-xs font-bold text-muted-foreground hover:text-foreground"
+              >
+                Continuar explorando ✨
+              </button>
+            </div>
           </div>
         )}
       </div>
