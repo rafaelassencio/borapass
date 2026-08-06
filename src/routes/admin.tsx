@@ -389,15 +389,22 @@ const INITIAL_PARTNER_OFFERS: ListingOffer[] = [
 export function AdminPanelPage() {
   const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isStaff, isAdmin, isRealAdmin, setRoleSimulation, loading: rolesLoading } = useRoles(user?.id, user?.email);
+  const { isStaff, isAdmin, isRealAdmin, isPartner, simulatedRole, setRoleSimulation, loading: rolesLoading } = useRoles(user?.id, user?.email);
   const isLoading = authLoading || rolesLoading;
 
   const isSuper = isRealAdmin || isSuperAdminProtected(user);
+
+  const isPurePartner = isPartner && !isRealAdmin && (!simulatedRole || simulatedRole === "partner");
 
   useEffect(() => {
     if (!isLoading) {
       if (!user) {
         navigate({ to: "/login", replace: true });
+        return;
+      }
+      if (isPurePartner) {
+        toast.info("Redirecionando para Ativar Cupom...");
+        navigate({ to: "/validar-cupom", replace: true });
         return;
       }
       if (isSuper) {
@@ -408,7 +415,7 @@ export function AdminPanelPage() {
         navigate({ to: "/", replace: true });
       }
     }
-  }, [isLoading, user, isStaff, isSuper, navigate, setRoleSimulation]);
+  }, [isLoading, user, isStaff, isSuper, isPurePartner, navigate, setRoleSimulation]);
 
   const [activeTab, setActiveTab] = useState<AdminTab>("dashboard");
   const [search, setSearch] = useState("");

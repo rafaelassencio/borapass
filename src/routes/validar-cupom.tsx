@@ -1,18 +1,17 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { useState, useEffect } from "react";
 import {
   QrCode,
-  Search,
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Ticket,
-  Calendar,
+  Clock,
   User,
-  ShieldCheck,
+  Camera,
   RefreshCw,
-  Store,
+  X,
+  Ticket,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/hooks/use-auth";
@@ -20,23 +19,24 @@ import { useRoles } from "@/hooks/use-roles";
 import { getStoredPartners } from "@/lib/partners";
 
 export const Route = createFileRoute("/validar-cupom")({
-  head: () => ({ meta: [{ title: "Ativar Cupons — Bora Pass" }] }),
+  head: () => ({ meta: [{ title: "Ativar Cupom — Portal do Parceiro" }] }),
   component: ValidarCupomPage,
 });
 
+type CouponStatus = "valid" | "used" | "expired" | "invalid";
+
 type RedeemedCoupon = {
   id: string;
-  listing_id?: string;
-  partner_id?: string;
-  partner_name?: string;
-  title: string;
-  city?: string | null;
   code: string;
+  title: string;
+  partner_name?: string;
   discount: string;
   redeemed_at: string;
-  status?: "valid" | "used";
+  status: CouponStatus;
   used_at?: string | null;
   user_email?: string;
+  user_name?: string;
+  expiration_date?: string;
 };
 
 export function ValidarCupomPage() {
@@ -53,116 +53,117 @@ export function ValidarCupomPage() {
   }, [isLoading, user, isAuthorized, navigate]);
 
   const [searchCode, setSearchCode] = useState("");
-  const [activeCoupon, setActiveCoupon] = useState<RedeemedCoupon | null>(null);
-  const [searchError, setSearchError] = useState<string | null>(null);
+  const [validatedCoupon, setValidatedCoupon] = useState<RedeemedCoupon | null>(null);
+  const [validationError, setValidationError] = useState<string | null>(null);
+  const [showQrModal, setShowQrModal] = useState(false);
+
+  // Histórico apenas da SESSÃO ATUAL
+  const [sessionHistory, setSessionHistory] = useState<RedeemedCoupon[]>([]);
 
   const partners = getStoredPartners();
   const currentPartnerStore = partners.find((p) => p.user_id === user?.id) || partners[0] || null;
 
+  // Base de cupons para validação
   const [couponsList, setCouponsList] = useState<RedeemedCoupon[]>(() => {
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("borapass:redeemed-coupons");
       if (saved) {
         try {
           return JSON.parse(saved);
-        } catch {
-          /* fallback */
-        }
+        } catch { /* fallback */ }
       }
     }
     return [
       {
-        id: "demo-1",
+        id: "c-1",
         code: "PASS-12A452",
-        title: "20% OFF Almoço Típico em Gramado",
-        partner_name: "Churrascaria Serra Gaúcha",
+        title: "20% OFF Almoço Típico Gaúcho",
+        partner_name: currentPartnerStore?.store_name || "Restaurante Parceiro",
         discount: "20% OFF",
         redeemed_at: new Date(Date.now() - 3600000).toISOString(),
         status: "valid",
-        user_email: "viajante@gmail.com",
+        user_email: "viajante.premium@gmail.com",
+        user_name: "Mariana Silva Santos",
+        expiration_date: new Date(Date.now() + 864000000).toISOString(),
       },
       {
-        id: "demo-2",
+        id: "c-2",
         code: "PASS-89F3K1",
         title: "Cortesia de Sobremesa Especial",
-        partner_name: "Café Colonial Gramado",
+        partner_name: currentPartnerStore?.store_name || "Café Colonial Gramado",
         discount: "Gratuito 🎁",
         redeemed_at: new Date(Date.now() - 86400000).toISOString(),
         status: "used",
         used_at: new Date(Date.now() - 40000000).toISOString(),
         user_email: "rafael.assencio12@gmail.com",
+        user_name: "Rafael Assêncio",
+      },
+      {
+        id: "c-3",
+        code: "PASS-EXP99",
+        title: "30% OFF Passeio de Maria Fumaça",
+        partner_name: currentPartnerStore?.store_name || "Agência de Turismo",
+        discount: "30% OFF",
+        redeemed_at: new Date(Date.now() - 864000000).toISOString(),
+        status: "expired",
+        user_email: "cliente.expirado@hotmail.com",
+        user_name: "Carlos Eduardo",
+        expiration_date: new Date(Date.now() - 86400000).toISOString(),
       },
     ];
   });
 
-  const [filter, setFilter] = useState<"all" | "valid" | "used">("all");
+  function handleValidateCode(codeToSearch?: string) {
+    setValidationError(null);
+    setValidatedCoupon(null);
 
-  function saveCoupons(updated: RedeemedCoupon[]) {
-    setCouponsList(updated);
-    if (typeof window !== "undefined") {
-      localStorage.setItem("borapass:redeemed-coupons", JSON.stringify(updated));
-    }
-  }
-
-  function handleSearch(e?: React.FormEvent) {
-    if (e) e.preventDefault();
-    setSearchError(null);
-    setActiveCoupon(null);
-
-    const clean = searchCode.trim().toUpperCase();
+    const clean = (codeToSearch || searchCode).trim().toUpperCase();
     if (!clean) {
-      return toast.error("Digite o código do cupom para buscar.");
-    }
-
-    const found = couponsList.find((c) => c.code.toUpperCase() === clean);
-    if (!found) {
-      setSearchError(`Código "${clean}" não encontrado na base de dados de cupons.`);
-      toast.error("Cupom não encontrado.");
+      toast.error("Digite ou escaneie o código do cupom.");
       return;
     }
 
-    setActiveCoupon(found);
+    const found = couponsList.find((c) => c.code.toUpperCase() === clean);
+
+    if (!found) {
+      setValidationError(`Código "${clean}" não é um cupom válido no Bora Pass.`);
+      toast.error("Cupom inválido!");
+      return;
+    }
+
+    setValidatedCoupon(found);
+    toast.info(`Cupom "${clean}" localizado. Verifique o status abaixo.`);
   }
 
-  function handleActivateCoupon(coupon: RedeemedCoupon) {
+  function handleConfirmActivation(coupon: RedeemedCoupon) {
     if (coupon.status === "used") {
       return toast.error("Este cupom já foi utilizado e invalidado.");
     }
-
-    // Regra: O cupom só pode ser ativado pela loja à qual pertence!
-    if (!isAdmin && currentPartnerStore) {
-      if (coupon.partner_id && coupon.partner_id !== currentPartnerStore.id) {
-        return toast.error("⚠️ Esse cupom não pode ser ativado nesse estabelecimento.");
-      }
-      if (
-        coupon.partner_name &&
-        coupon.partner_name.toLowerCase().trim() !==
-          currentPartnerStore.store_name.toLowerCase().trim()
-      ) {
-        return toast.error("⚠️ Esse cupom não pode ser ativado nesse estabelecimento.");
-      }
+    if (coupon.status === "expired") {
+      return toast.error("Este cupom expirou e não pode ser ativado.");
     }
 
     const now = new Date().toISOString();
-    const updated = couponsList.map((c) => {
-      if (c.code === coupon.code || c.id === coupon.id) {
-        return { ...c, status: "used" as const, used_at: now };
-      }
-      return c;
-    });
+    const updatedCoupon: RedeemedCoupon = {
+      ...coupon,
+      status: "used",
+      used_at: now,
+    };
 
-    saveCoupons(updated);
-    setActiveCoupon({ ...coupon, status: "used", used_at: now });
-    toast.success(
-      `🎉 Cupom "${coupon.code}" foi ATIVADO com sucesso por ${currentPartnerStore?.store_name || "seu estabelecimento"}!`,
-    );
+    const updatedList = couponsList.map((c) => (c.code === coupon.code ? updatedCoupon : c));
+
+    setCouponsList(updatedList);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("borapass:redeemed-coupons", JSON.stringify(updatedList));
+    }
+
+    setValidatedCoupon(updatedCoupon);
+
+    // Registra na sessão atual
+    setSessionHistory((prev) => [updatedCoupon, ...prev.filter((p) => p.code !== updatedCoupon.code)]);
+
+    toast.success(`🎉 Cupom "${coupon.code}" foi ATIVADO com sucesso!`);
   }
-
-  const filteredCoupons = couponsList.filter((c) => {
-    if (filter === "valid") return c.status !== "used";
-    if (filter === "used") return c.status === "used";
-    return true;
-  });
 
   if (isLoading || !user || !isAuthorized) {
     return null;
@@ -170,214 +171,213 @@ export function ValidarCupomPage() {
 
   return (
     <AppShell>
-      <PageHeader
-        title="Ativar Cupons"
-        subtitle="Validação e baixa de cupons resgatados por clientes"
-      />
+      <PageHeader title="Ativar Cupom" subtitle="Validação e baixa rápida de cupons no atendimento" />
 
-      <div className="px-5 pt-4 space-y-5">
-        {/* Banner Informativo para o Parceiro */}
-        <div className="rounded-2xl bg-gradient-hero p-4 text-white shadow-brand relative overflow-hidden">
-          <div className="flex items-center gap-3">
-            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/20 text-2xl backdrop-blur">
-              🎟️
-            </div>
-            <div>
-              <h2 className="text-base font-extrabold">Validador de Cupons dos Clientes</h2>
-              <p className="text-xs text-white/90 mt-0.5">
-                Digite ou escaneie o código apresentado pelo viajante para dar baixa e invalidar o
-                cupom.
-              </p>
-            </div>
+      <div className="px-5 pt-4 space-y-5 pb-24">
+        {/* BUSCADOR DE CÓDIGO & SCANNER QR */}
+        <div className="rounded-3xl border border-border bg-card p-5 shadow-elevated space-y-4">
+          <div className="flex items-center justify-between">
+            <label className="text-xs font-black text-foreground uppercase tracking-wide flex items-center gap-2">
+              <QrCode className="h-4 w-4 text-primary" /> Código ou QR Code do Cliente
+            </label>
+            <span className="text-[10px] font-bold text-primary bg-primary/10 px-2.5 py-0.5 rounded-full">
+              Atendimento Parceiro
+            </span>
           </div>
-        </div>
 
-        {/* Buscador de Código de Cupom */}
-        <form
-          onSubmit={handleSearch}
-          className="rounded-2xl border border-border bg-card p-4 shadow-soft space-y-3"
-        >
-          <label className="block text-xs font-bold text-foreground uppercase tracking-wide flex items-center gap-1.5">
-            <QrCode className="h-4 w-4 text-primary" /> Digitar ou Escanear Código do Cupom
-          </label>
-          <div className="flex gap-2">
-            <input
-              type="text"
-              value={searchCode}
-              onChange={(e) => setSearchCode(e.target.value)}
-              placeholder="Ex: PASS-12A452"
-              className="flex-1 rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm font-mono font-bold uppercase tracking-wider outline-none focus:ring-1 focus:ring-primary"
-            />
+          <div className="flex flex-col sm:flex-row gap-2.5">
+            <div className="relative flex-1">
+              <input
+                type="text"
+                value={searchCode}
+                onChange={(e) => setSearchCode(e.target.value)}
+                placeholder="Digite o código (ex: PASS-12A452)"
+                className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-base font-mono font-black uppercase tracking-wider outline-none focus:ring-2 focus:ring-primary/40"
+                onKeyDown={(e) => e.key === "Enter" && handleValidateCode()}
+              />
+              {searchCode && (
+                <button
+                  onClick={() => setSearchCode("")}
+                  className="absolute right-3 top-3.5 text-muted-foreground hover:text-foreground"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+
             <button
-              type="submit"
-              className="rounded-xl bg-gradient-brand px-5 py-2.5 text-xs font-bold text-white shadow-brand hover:opacity-95 transition"
+              onClick={() => handleValidateCode()}
+              className="rounded-2xl bg-gradient-brand px-6 py-3 text-xs font-black text-white shadow-brand hover:opacity-95 transition shrink-0 flex items-center justify-center gap-2"
             >
-              Verificar
+              Validar Cupom
             </button>
           </div>
-        </form>
 
-        {/* MENSAGEM DE ERRO NA BUSCA */}
-        {searchError && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4 text-center text-xs font-bold text-red-600 dark:text-red-400 flex items-center justify-center gap-2">
-            <XCircle className="h-5 w-5 shrink-0" />
-            <span>{searchError}</span>
+          <button
+            onClick={() => setShowQrModal(true)}
+            className="w-full rounded-2xl border border-dashed border-primary/40 bg-primary/5 hover:bg-primary/10 py-3 text-xs font-bold text-primary transition flex items-center justify-center gap-2"
+          >
+            <Camera className="h-4 w-4" /> Escanear QR Code com a Câmera
+          </button>
+        </div>
+
+        {/* MENSAGEM DE ERRO (CUPOM INVÁLIDO) */}
+        {validationError && (
+          <div className="rounded-2xl border border-red-500/40 bg-red-500/10 p-4 text-center text-xs font-bold text-red-600 dark:text-red-400 flex items-center justify-center gap-2 shadow-soft">
+            <XCircle className="h-5 w-5 shrink-0 text-red-500" />
+            <span>{validationError}</span>
           </div>
         )}
 
-        {/* CARD DO CUPOM SELECIONADO / BUSCADO */}
-        {activeCoupon && (
+        {/* CARD DE RESULTADO DA VALIDAÇÃO */}
+        {validatedCoupon && (
           <div
-            className={`rounded-2xl border p-4 shadow-elevated space-y-3 ${
-              activeCoupon.status === "used"
-                ? "border-red-500/40 bg-red-500/5"
-                : "border-emerald-500/40 bg-emerald-500/5"
+            className={`rounded-3xl border p-5 shadow-elevated space-y-4 ${
+              validatedCoupon.status === "valid"
+                ? "border-emerald-500/50 bg-emerald-500/10"
+                : validatedCoupon.status === "used"
+                  ? "border-amber-500/50 bg-amber-500/10"
+                  : "border-red-500/50 bg-red-500/10"
             }`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span className="font-mono text-2xl sm:text-3xl font-black tracking-widest text-primary drop-shadow-sm select-all">
-                {activeCoupon.code}
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border/40 pb-3">
+              <span className="font-mono text-2xl font-black tracking-widest text-foreground select-all">
+                {validatedCoupon.code}
               </span>
-              {activeCoupon.status === "used" ? (
-                <span className="rounded-full bg-red-500/20 px-3 py-1 text-[10px] font-black text-red-600 dark:text-red-400 border border-red-500/30">
-                  🚫 JÁ UTILIZADO / INVALIDADO
+
+              {validatedCoupon.status === "valid" && (
+                <span className="rounded-full bg-emerald-500 text-slate-950 px-3 py-1 text-[11px] font-black uppercase shadow-sm flex items-center gap-1">
+                  🟢 Cupom Válido
                 </span>
-              ) : (
-                <span className="rounded-full bg-emerald-500/20 px-3 py-1 text-[10px] font-black text-emerald-600 dark:text-emerald-400 border border-emerald-500/30">
-                  🟢 VÁLIDO PARA USO
+              )}
+              {validatedCoupon.status === "used" && (
+                <span className="rounded-full bg-amber-500 text-slate-950 px-3 py-1 text-[11px] font-black uppercase shadow-sm flex items-center gap-1">
+                  ⚠️ Cupom Já Utilizado
+                </span>
+              )}
+              {validatedCoupon.status === "expired" && (
+                <span className="rounded-full bg-red-500 text-white px-3 py-1 text-[11px] font-black uppercase shadow-sm flex items-center gap-1">
+                  ⏰ Cupom Expirado
                 </span>
               )}
             </div>
 
             <div>
-              <h3 className="text-base font-extrabold text-foreground">{activeCoupon.title}</h3>
-              <p className="text-xs font-bold text-accent mt-0.5">
-                Benefício: {activeCoupon.discount}
+              <h3 className="text-base font-extrabold text-foreground">{validatedCoupon.title}</h3>
+              <p className="text-xs font-black text-emerald-600 dark:text-emerald-400 mt-1">
+                Desconto / Benefício: {validatedCoupon.discount}
               </p>
             </div>
 
-            <div className="rounded-xl bg-background/80 p-3 text-xs space-y-1 border border-border">
-              {activeCoupon.user_email && (
+            <div className="rounded-2xl bg-background/80 p-3.5 text-xs space-y-1.5 border border-border/60">
+              {validatedCoupon.user_name && (
                 <p className="text-muted-foreground flex items-center gap-1.5">
                   <User className="h-3.5 w-3.5 text-primary" /> Cliente:{" "}
-                  <strong className="text-foreground">{activeCoupon.user_email}</strong>
+                  <strong className="text-foreground font-bold">{validatedCoupon.user_name}</strong>
                 </p>
               )}
               <p className="text-muted-foreground flex items-center gap-1.5">
-                <Calendar className="h-3.5 w-3.5 text-primary" /> Resgatado em:{" "}
-                <strong className="text-foreground">
-                  {new Date(activeCoupon.redeemed_at).toLocaleString("pt-BR")}
+                <Clock className="h-3.5 w-3.5 text-primary" /> Resgatado em:{" "}
+                <strong className="text-foreground font-mono">
+                  {new Date(validatedCoupon.redeemed_at).toLocaleString("pt-BR")}
                 </strong>
               </p>
-              {activeCoupon.status === "used" && activeCoupon.used_at && (
-                <p className="text-red-600 dark:text-red-400 font-bold flex items-center gap-1.5">
-                  <AlertTriangle className="h-3.5 w-3.5 text-red-500" /> Invalidado em:{" "}
-                  {new Date(activeCoupon.used_at).toLocaleString("pt-BR")}
+              {validatedCoupon.status === "used" && validatedCoupon.used_at && (
+                <p className="text-amber-600 dark:text-amber-400 font-bold flex items-center gap-1.5">
+                  <AlertTriangle className="h-3.5 w-3.5" /> Utilizado em:{" "}
+                  <span className="font-mono">{new Date(validatedCoupon.used_at).toLocaleString("pt-BR")}</span>
                 </p>
               )}
             </div>
 
-            {/* AÇÃO DO PARCEIRO: ATIVAR E INVALIDAR */}
-            {activeCoupon.status === "used" ? (
-              <div className="rounded-xl bg-red-500/15 p-3 text-center text-xs font-bold text-red-600 dark:text-red-400">
-                ⚠️ Este cupom já foi ativado anteriormente e não pode ser reaproveitado.
-              </div>
-            ) : (
+            {/* BOTÃO DE CONFIRMAR UTILIZAÇÃO */}
+            {validatedCoupon.status === "valid" ? (
               <button
-                onClick={() => handleActivateCoupon(activeCoupon)}
+                onClick={() => handleConfirmActivation(validatedCoupon)}
                 className="w-full flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-3.5 text-sm font-black text-white shadow-brand hover:bg-emerald-700 transition active:scale-95"
               >
-                <CheckCircle2 className="h-5 w-5" /> ATIVAR E INVALIDAR CUPOM AGORA
+                <CheckCircle2 className="h-5 w-5" /> Confirmar Utilização (Ativar Cupom)
               </button>
+            ) : validatedCoupon.status === "used" ? (
+              <div className="rounded-2xl bg-amber-500/20 p-3 text-center text-xs font-bold text-amber-300 border border-amber-500/30">
+                ⚠️ Este cupom já foi consumido anteriormente e não pode ser reutilizado.
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-red-500/20 p-3 text-center text-xs font-bold text-red-300 border border-red-500/30">
+                ⏰ Este cupom ultrapassou a data limite de validade.
+              </div>
             )}
           </div>
         )}
 
-        {/* LISTA DE CUPONS DO ESTABELECIMENTO */}
-        <div className="space-y-3">
-          <div className="flex items-center justify-between">
+        {/* HISTÓRICO APENAS DA SESSÃO ATUAL */}
+        {sessionHistory.length > 0 && (
+          <div className="space-y-3 pt-2">
             <h3 className="text-xs font-extrabold uppercase tracking-wide text-foreground flex items-center gap-1.5">
-              <Ticket className="h-4 w-4 text-primary" /> Cupons Resgatados pelos Clientes (
-              {filteredCoupons.length})
+              <Ticket className="h-4 w-4 text-primary" /> Ativações Realizadas nesta Sessão ({sessionHistory.length})
             </h3>
+            <div className="space-y-2">
+              {sessionHistory.map((item) => (
+                <div
+                  key={item.code}
+                  className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 p-3.5 text-xs flex items-center justify-between gap-2 shadow-soft"
+                >
+                  <div>
+                    <span className="font-mono font-black text-foreground text-xs block">{item.code}</span>
+                    <span className="text-[11px] font-semibold text-muted-foreground">{item.title}</span>
+                  </div>
+                  <span className="shrink-0 text-[10px] font-extrabold bg-emerald-500/20 text-emerald-600 dark:text-emerald-300 px-2.5 py-1 rounded-full border border-emerald-500/30">
+                    ✅ Ativado
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
 
-            {/* Filtros */}
-            <div className="flex gap-1 text-[11px] font-bold">
+      {/* MODAL SCANNER QR CODE */}
+      {showQrModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <div className="w-full max-w-sm rounded-3xl bg-card border border-border p-6 space-y-4 shadow-elevated text-center relative">
+            <button
+              onClick={() => setShowQrModal(false)}
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" />
+            </button>
+            <div className="grid h-16 w-16 place-items-center rounded-2xl bg-primary/10 text-primary mx-auto">
+              <Camera className="h-8 w-8 animate-pulse" />
+            </div>
+            <h3 className="text-base font-extrabold text-foreground">Leitor de QR Code</h3>
+            <p className="text-xs text-muted-foreground">
+              Aproxime a câmera do smartphone do QR Code apresentado pelo cliente no aplicativo.
+            </p>
+            <div className="grid grid-cols-2 gap-2 pt-2">
               <button
-                onClick={() => setFilter("all")}
-                className={`px-2.5 py-1 rounded-lg transition ${
-                  filter === "all" ? "bg-primary text-white" : "bg-secondary text-muted-foreground"
-                }`}
+                onClick={() => {
+                  setSearchCode("PASS-12A452");
+                  setShowQrModal(false);
+                  handleValidateCode("PASS-12A452");
+                }}
+                className="rounded-xl bg-emerald-600 py-2.5 text-xs font-bold text-white"
               >
-                Todos
+                QR Válido (Simular)
               </button>
               <button
-                onClick={() => setFilter("valid")}
-                className={`px-2.5 py-1 rounded-lg transition ${
-                  filter === "valid"
-                    ? "bg-emerald-600 text-white"
-                    : "bg-secondary text-muted-foreground"
-                }`}
+                onClick={() => {
+                  setSearchCode("PASS-89F3K1");
+                  setShowQrModal(false);
+                  handleValidateCode("PASS-89F3K1");
+                }}
+                className="rounded-xl bg-amber-600 py-2.5 text-xs font-bold text-white"
               >
-                Válidos
-              </button>
-              <button
-                onClick={() => setFilter("used")}
-                className={`px-2.5 py-1 rounded-lg transition ${
-                  filter === "used" ? "bg-red-600 text-white" : "bg-secondary text-muted-foreground"
-                }`}
-              >
-                Invalidados
+                QR Utilizado (Simular)
               </button>
             </div>
           </div>
-
-          <div className="space-y-2.5">
-            {filteredCoupons.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-border bg-card p-6 text-center text-xs text-muted-foreground">
-                Nenhum cupom encontrado nesta categoria.
-              </div>
-            ) : (
-              filteredCoupons.map((item) => (
-                <div
-                  key={item.id || item.code}
-                  className={`rounded-2xl border bg-card p-3.5 shadow-soft space-y-2 ${
-                    item.status === "used" ? "border-red-500/30 opacity-75" : "border-border"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-xs font-bold text-foreground">{item.code}</span>
-                    {item.status === "used" ? (
-                      <span className="rounded-full bg-red-500/10 px-2.5 py-0.5 text-[9px] font-extrabold text-red-600 dark:text-red-400">
-                        Invalidado ✓
-                      </span>
-                    ) : (
-                      <span className="rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-[9px] font-extrabold text-emerald-600 dark:text-emerald-400">
-                        Válido
-                      </span>
-                    )}
-                  </div>
-
-                  <p className="text-xs font-bold text-foreground">{item.title}</p>
-
-                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1 border-t border-border/50">
-                    <span>{new Date(item.redeemed_at).toLocaleDateString("pt-BR")}</span>
-
-                    {item.status !== "used" && (
-                      <button
-                        onClick={() => handleActivateCoupon(item)}
-                        className="rounded-lg bg-emerald-600 px-3 py-1 text-[10px] font-bold text-white hover:bg-emerald-700 transition"
-                      >
-                        Ativar & Invalidar
-                      </button>
-                    )}
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
         </div>
-      </div>
+      )}
     </AppShell>
   );
 }

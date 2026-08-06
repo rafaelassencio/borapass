@@ -228,9 +228,16 @@ export function Home() {
   const [city] = useSelectedCity();
   const cityId = city?.id ?? null;
   const { user } = useAuth();
-  const { isPremium } = useRoles(user?.id);
+  const { isPremium, isPartner, isRealAdmin, simulatedRole } = useRoles(user?.id, user?.email);
+  const isPurePartner = isPartner && !isRealAdmin && (!simulatedRole || simulatedRole === "partner");
   const profile = useProfile(user?.id);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (isPurePartner) {
+      navigate({ to: "/validar-cupom", replace: true });
+    }
+  }, [isPurePartner, navigate]);
 
   useAutoGenerateAlerts(user?.id, cityId);
   useTripAlertScheduler(user?.id);

@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { useAuth } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
@@ -108,8 +108,16 @@ function StatusBadge({ status }: { status: string }) {
 }
 
 function PartnerPanel() {
+  const navigate = useNavigate();
   const { user, loading: authLoading } = useAuth();
-  const { isPartner, isAdmin, isSupport, loading: rolesLoading } = useRoles(user?.id);
+  const { isPartner, isAdmin, isSupport, isRealAdmin, simulatedRole, loading: rolesLoading } = useRoles(user?.id, user?.email);
+  const isPurePartner = isPartner && !isRealAdmin && (!simulatedRole || simulatedRole === "partner");
+
+  useEffect(() => {
+    if (!authLoading && !rolesLoading && isPurePartner) {
+      navigate({ to: "/validar-cupom", replace: true });
+    }
+  }, [authLoading, rolesLoading, isPurePartner, navigate]);
   const [listings, setListings] = useState<Listing[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Listing | null>(null);

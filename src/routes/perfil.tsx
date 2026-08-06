@@ -35,6 +35,10 @@ import {
   ShieldCheck,
   ShieldAlert,
   Camera,
+  Building2,
+  FileText,
+  Phone,
+  Pencil,
 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
@@ -43,6 +47,7 @@ import { useAuth, useProfile } from "@/hooks/use-auth";
 import { useRoles } from "@/hooks/use-roles";
 import { useFavorites } from "@/lib/favorites";
 import { usePlanLimits } from "@/lib/plan-limits";
+import { getStoredPartners } from "@/lib/partners";
 import { UpgradePremiumModal } from "@/components/UpgradePremiumModal";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -168,6 +173,9 @@ export function Perfil() {
   const { user, loading } = useAuth();
   const profile = useProfile(user?.id);
   const { isAdmin, isRealAdmin, isSupport, isPartner, isPremium, simulatedRole, setRoleSimulation, loading: rolesLoading } = useRoles(user?.id, user?.email);
+  const isPurePartner = isPartner && !isRealAdmin && (!simulatedRole || simulatedRole === "partner");
+  const partners = getStoredPartners();
+  const currentPartnerStore = partners.find((p) => p.user_id === user?.id) || partners[0] || null;
   const { favorites } = useFavorites(user?.id);
   const { limits, couponsTodayCount } = usePlanLimits();
   const { data: dbCities } = useCities(true);
@@ -677,7 +685,84 @@ export function Perfil() {
             </div>
           </div>
 
-          {/* Economia em Viagens Widget */}
+          {/* PERFIL EXCLUSIVO DE PARCEIRO (SIMPLIFICADO) */}
+          {isPurePartner ? (
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl bg-white/10 p-4 border border-white/20 backdrop-blur space-y-3 text-xs">
+                <div className="flex items-center justify-between border-b border-white/15 pb-2.5">
+                  <span className="opacity-80 font-bold flex items-center gap-1.5">
+                    <Building2 className="h-4 w-4 text-amber-300" /> Empresa / Loja:
+                  </span>
+                  <span className="font-black text-white text-sm">
+                    {currentPartnerStore?.store_name || "Empresa Parceira"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between border-b border-white/15 pb-2.5">
+                  <span className="opacity-80 font-bold flex items-center gap-1.5">
+                    <FileText className="h-4 w-4 text-amber-300" /> CNPJ:
+                  </span>
+                  <span className="font-mono font-extrabold text-white">
+                    {currentPartnerStore?.cnpj || "12.345.678/0001-99"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between border-b border-white/15 pb-2.5">
+                  <span className="opacity-80 font-bold flex items-center gap-1.5">
+                    <UserIcon className="h-4 w-4 text-amber-300" /> Responsável:
+                  </span>
+                  <span className="font-extrabold text-white">{displayName}</span>
+                </div>
+
+                <div className="flex items-center justify-between border-b border-white/15 pb-2.5">
+                  <span className="opacity-80 font-bold flex items-center gap-1.5">
+                    <Mail className="h-4 w-4 text-amber-300" /> E-mail Comercial:
+                  </span>
+                  <span className="font-mono font-bold text-white">{user?.email}</span>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <span className="opacity-80 font-bold flex items-center gap-1.5">
+                    <Phone className="h-4 w-4 text-amber-300" /> Telefone:
+                  </span>
+                  <span className="font-mono font-bold text-white">
+                    {phone || currentPartnerStore?.phone || "(21) 99999-8888"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 pt-1">
+                <button
+                  onClick={() => setShowEditProfile(true)}
+                  className="rounded-2xl bg-white/20 hover:bg-white/30 text-white font-bold py-3 text-xs flex items-center justify-center gap-1.5 backdrop-blur border border-white/30 transition"
+                >
+                  <Pencil className="h-4 w-4 text-amber-300" /> Editar Perfil
+                </button>
+                <button
+                  onClick={async () => {
+                    if (user?.email) {
+                      await supabase.auth.resetPasswordForEmail(user.email);
+                      toast.success(`E-mail de redefinição de senha enviado para ${user.email}!`);
+                    } else {
+                      toast.error("E-mail não encontrado.");
+                    }
+                  }}
+                  className="rounded-2xl bg-white/20 hover:bg-white/30 text-white font-bold py-3 text-xs flex items-center justify-center gap-1.5 backdrop-blur border border-white/30 transition"
+                >
+                  <Lock className="h-4 w-4 text-amber-300" /> Alterar Senha
+                </button>
+              </div>
+
+              <Link
+                to="/validar-cupom"
+                className="w-full flex items-center justify-center gap-2 rounded-2xl bg-amber-400 py-3.5 text-xs font-black text-black shadow-brand hover:bg-amber-300 transition uppercase tracking-wider"
+              >
+                <Ticket className="h-4 w-4" /> Ir para Ativar Cupom
+              </Link>
+            </div>
+          ) : (
+            <div className="w-full">
+              {/* Economia em Viagens Widget */}
           {user && (
             <div className="mt-4 flex items-center justify-between rounded-2xl bg-white/20 p-3.5 backdrop-blur border border-white/25 shadow-brand">
               <div className="flex items-center gap-3">
@@ -767,6 +852,8 @@ export function Perfil() {
                 </div>
               )}
             </>
+          )}
+            </div>
           )}
         </div>
 
@@ -1079,6 +1166,63 @@ export function Perfil() {
             {!isPartner && !isAdmin && !isRealAdmin && !isSupport && (
               <Row icon={<Store className="h-4 w-4" />} label="Quero ser parceiro" to="/parceiro" />
             )}
+          </div>
+        )}
+
+        {!isPurePartner && (
+          <div className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-soft">
+            <h3 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              Preferências & Sistema
+            </h3>
+            <div className="divide-y divide-border">
+              <Row
+                icon={<Moon className="h-4 w-4 text-purple-400" />}
+                label="Modo Escuro"
+                right={<Switch checked={dark} onCheckedChange={setDark} />}
+              />
+              <Row
+                icon={<Bell className="h-4 w-4 text-amber-400" />}
+                label="Notificações"
+                value="Ativas"
+                onClick={() => setShowNotifsModal(true)}
+              />
+              <Row
+                icon={<Shield className="h-4 w-4 text-sky-400" />}
+                label="Privacidade & Termos de Uso"
+                value="Ler Documento"
+                onClick={() => {
+                  if (typeof window !== "undefined") {
+                    const saved = localStorage.getItem("borapass:privacy-policy");
+                    if (saved) setPrivacyPolicyText(saved);
+                  }
+                  setShowPrivacyModal(true);
+                }}
+              />
+              <Row
+                icon={<HelpCircle className="h-4 w-4 text-emerald-500" />}
+                label="Ajuda & Suporte ao Cliente"
+                value="Abrir Chamado"
+                to="/ajuda"
+              />
+              {(isRealAdmin || isAdmin || isSupport) && (
+                <Row
+                  icon={<ShieldAlert className="h-4 w-4 text-amber-500" />}
+                  label="Console Administrativo"
+                  value="Acessar Painel"
+                  to="/admin"
+                />
+              )}
+              {(isPartner || isAdmin || isRealAdmin) && (
+                <Row
+                  icon={<Store className="h-4 w-4 text-primary" />}
+                  label="Painel do parceiro"
+                  to="/parceiro"
+                />
+              )}
+              {!isPartner && !isAdmin && !isRealAdmin && !isSupport && (
+                <Row icon={<Store className="h-4 w-4" />} label="Quero ser parceiro" to="/parceiro" />
+              )}
+            </div>
           </div>
         )}
 
@@ -2243,12 +2387,14 @@ function Row({
   icon,
   label,
   value,
+  right,
   to,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
   value?: string;
+  right?: React.ReactNode;
   to?: string;
   onClick?: () => void;
 }) {
@@ -2259,8 +2405,8 @@ function Row({
         <span className="text-sm font-medium">{label}</span>
       </div>
       <div className="flex items-center gap-1 text-xs text-muted-foreground">
-        {value}
-        <ChevronRight className="h-4 w-4" />
+        {right || value}
+        {!right && <ChevronRight className="h-4 w-4" />}
       </div>
     </div>
   );
