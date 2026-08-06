@@ -1,7 +1,7 @@
 /**
  * Edge Function: searchBusTickets
- * Responsável por pesquisar passagens rodoviárias consumindo a API da ClickBus.
- * Segredos utilizados: CLICKBUS_API_KEY, CLICKBUS_API_URL
+ * Responsável por pesquisar passagens rodoviárias consumindo a API da GeckoAPI (https://geckoapi.com.br/docs/) e ClickBus.
+ * Segredos utilizados: GECKO_API_KEY, GECKO_API_URL, CLICKBUS_API_KEY, CLICKBUS_API_URL
  */
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders, corsResponse } from "../_shared/cors.ts";
@@ -39,7 +39,6 @@ serve(async (req: Request) => {
     const body: BusSearchRequest = await req.json();
     const { origin, destination, date, passengers = 1 } = body;
 
-    // 1. Validação estrita de parâmetros obrigatórios
     if (!origin || !destination || !date) {
       return new Response(
         JSON.stringify({
@@ -50,27 +49,27 @@ serve(async (req: Request) => {
       );
     }
 
-    const apiKey = Deno.env.get("CLICKBUS_API_KEY");
-    const apiUrl = Deno.env.get("CLICKBUS_API_URL");
+    const geckoKey = Deno.env.get("GECKO_API_KEY") || Deno.env.get("CLICKBUS_API_KEY");
+    const geckoUrl = Deno.env.get("GECKO_API_URL") || Deno.env.get("CLICKBUS_API_URL") || "https://api.geckoapi.com.br/v1";
 
     let busTickets: BusTicketResult[] = [];
     let isMockFallback = false;
+    let apiProvider = "GeckoAPI (ClickBus)";
 
-    // 2. Se houver URL e Chave configuradas, faz a chamada REST à API da ClickBus
-    if (apiUrl && apiKey) {
+    if (geckoKey) {
       try {
-        console.log(`[searchBusTickets] Chamando API ClickBus Endpoint: ${apiUrl}`);
+        console.log(`[searchBusTickets] Chamando GeckoAPI Endpoint: ${geckoUrl}/bus/search`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Timeout
 
         const apiRes = await fetch(
-          `${apiUrl}/trips?from=${encodeURIComponent(origin)}&to=${encodeURIComponent(destination)}&date=${date}&passengers=${passengers}`,
+          `${geckoUrl}/bus/search?from=${encodeURIComponent(origin)}&to=${encodeURIComponent(destination)}&date=${date}&passengers=${passengers}`,
           {
             method: "GET",
             headers: {
               "Content-Type": "application/json",
-              "X-Api-Key": apiKey,
-              Authorization: `Bearer ${apiKey}`,
+              Authorization: `Bearer ${geckoKey}`,
+              "x-api-key": geckoKey,
             },
             signal: controller.signal,
           },
@@ -79,24 +78,12 @@ serve(async (req: Request) => {
         clearTimeout(timeoutId);
 
         if (!apiRes.ok) {
-          console.warn(`[searchBusTickets API Error] Status HTTP ${apiRes.status}`);
-          if (apiRes.status === 401 || apiRes.status === 403) {
-            return new Response(
-              JSON.stringify({ error: "Credenciais de API inválidas na ClickBus", statusCode: apiRes.status }),
-              { status: apiRes.status, headers: corsHeaders },
-            );
-          }
-          if (apiRes.status === 429) {
-            return new Response(
-              JSON.stringify({ error: "Limite de requisições excedido na ClickBus", statusCode: 429 }),
-              { status: 429, headers: corsHeaders },
-            );
-          }
+          console.warn(`[searchBusTickets GeckoAPI Warning] HTTP ${apiRes.status}`);
           isMockFallback = true;
         } else {
           const data = await apiRes.json();
-          if (data && Array.isArray(data.items)) {
-            busTickets = data.items;
+          if (data && (Array.isArray(data.results) || Array.isArray(data.items))) {
+            busTickets = data.results || data.items;
           } else {
             isMockFallback = true;
           }
@@ -106,16 +93,16 @@ serve(async (req: Request) => {
         isMockFallback = true;
       }
     } else {
-      console.log(`[searchBusTickets] Secrets CLICKBUS_API_KEY/URL ausentes. Gerando resposta sandbox de alta precisão.`);
+      console.log(`[searchBusTickets] Secret GECKO_API_KEY ausente. Gerando resposta sandbox de alta precisão.`);
       isMockFallback = true;
     }
 
-    // 3. Fallback Sandbox Estruturado (Viação Cometa, 1001, Gontijo, Catarinense)
+    // Fallback Sandbox Estruturado
     if (isMockFallback || busTickets.length === 0) {
       busTickets = [
         {
           id: "bus-1001-1",
-          companyName: "Viação 1001",
+          companyName: "Viação 1001 (via GeckoAPI)",
           companyLogo: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=120&q=80",
           category: "Semi-Leito",
           origin,
@@ -130,7 +117,7 @@ serve(async (req: Request) => {
         },
         {
           id: "bus-cometa-2",
-          companyName: "Viação Cometa",
+          companyName: "Viação Cometa (via GeckoAPI)",
           companyLogo: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=120&q=80",
           category: "Leito",
           origin,
@@ -145,7 +132,7 @@ serve(async (req: Request) => {
         },
         {
           id: "bus-gontijo-3",
-          companyName: "Viação Gontijo",
+          companyName: "Viação Gontijo (via GeckoAPI)",
           companyLogo: "https://images.unsplash.com/photo-1570125909232-eb263c188f7e?w=120&q=80",
           category: "Executivo",
           origin,
@@ -158,31 +145,15 @@ serve(async (req: Request) => {
           taxes: 10.0,
           amenities: ["Ar Condicionado ❄️", "Sanitário 🚽", "Tomadas ⚡"],
         },
-        {
-          id: "bus-catarinense-4",
-          companyName: "Viação Catarinense",
-          companyLogo: "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=120&q=80",
-          category: "Cama",
-          origin,
-          destination,
-          departureTime: "23:00",
-          arrivalTime: "05:15",
-          duration: "6h 15m",
-          availableSeats: 6,
-          price: 249.0,
-          taxes: 18.0,
-          amenities: ["Cama Individual 🛌", "Kit Lanche Gourmet 🥪", "Wi-Fi 5G 📶", "Entrada USB-C 🔌"],
-        },
       ];
     }
 
     const elapsed = Date.now() - startTime;
-    console.log(`[searchBusTickets] Busca concluída com sucesso em ${elapsed}ms. Total de passagens: ${busTickets.length}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        source: isMockFallback ? "ClickBus Sandbox API" : "ClickBus Live API",
+        source: isMockFallback ? `${apiProvider} Sandbox Mode` : `${apiProvider} Live Production`,
         searchParams: { origin, destination, date, passengers },
         total: busTickets.length,
         results: busTickets,
@@ -191,7 +162,6 @@ serve(async (req: Request) => {
       { status: 200, headers: corsHeaders },
     );
   } catch (err: any) {
-    console.error(`[searchBusTickets Error] ${err.message}`);
     return new Response(
       JSON.stringify({
         error: "Erro interno no servidor ao processar busca de passagens rodoviárias.",

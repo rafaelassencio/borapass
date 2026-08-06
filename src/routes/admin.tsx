@@ -532,6 +532,21 @@ export function AdminPanelPage() {
     return "re_secret_live_094820194";
   });
 
+  const [geckoApiKey, setGeckoApiKey] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("borapass:api-gecko-key") || "gecko_live_a98f41208942019482";
+    }
+    return "gecko_live_a98f41208942019482";
+  });
+  const [geckoApiUrl, setGeckoApiUrl] = useState(() => {
+    if (typeof window !== "undefined") {
+      return localStorage.getItem("borapass:api-gecko-url") || "https://api.geckoapi.com.br/v1";
+    }
+    return "https://api.geckoapi.com.br/v1";
+  });
+
+  const [settingsSubTab, setSettingsSubTab] = useState<"geral" | "gecko" | "apis" | "termos" | "banners">("gecko");
+
   // States para a aba Transações & Financeiro
   const [paymentSearch, setPaymentSearch] = useState("");
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<string>("all");
@@ -771,6 +786,8 @@ export function AdminPanelPage() {
     }
 
     if (typeof window !== "undefined") {
+      localStorage.setItem("borapass:api-gecko-key", geckoApiKey);
+      localStorage.setItem("borapass:api-gecko-url", geckoApiUrl);
       localStorage.setItem("borapass:app-name", appName);
       localStorage.setItem("borapass:privacy-policy", privacyPolicyText);
       localStorage.setItem("borapass:api-asaas-key", asaasApiKey);
@@ -783,7 +800,7 @@ export function AdminPanelPage() {
       window.dispatchEvent(new Event("borapass:settings-changed"));
     }
 
-    toast.success("Configurações do App e Chaves da API do Asaas salvas com sucesso!");
+    toast.success("✨ Configurações Globais e Chaves da GeckoAPI salvas com sucesso!");
   };
 
   // AÇÕES DE GESTÃO DE USUÁRIOS (ADMIN VS SUPORTE)
@@ -3485,10 +3502,10 @@ export function AdminPanelPage() {
       )}
 
       {/* ========================================================= */}
-      {/* 12. TAB: CONFIGURAÇÕES (SOMENTE ADMIN EDITA)              */}
+      {/* 12. TAB: CONFIGURAÇÕES REFORMULADA (CLEAN & GECKOAPI)     */}
       {/* ========================================================= */}
       {activeTab === "settings" && (
-        <form onSubmit={handleSaveSettings} className="space-y-6">
+        <form onSubmit={handleSaveSettings} className="space-y-6 animate-fadeIn">
           {/* PERMISSION BANNER FOR SUPPORT USERS */}
           {!isAdmin && (
             <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 text-xs text-amber-300 font-bold flex items-center gap-3">
@@ -3500,300 +3517,370 @@ export function AdminPanelPage() {
             </div>
           )}
 
-          {/* SECTION A: DADOS DO APLICATIVO */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 space-y-4 shadow-elevated">
-            <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-              <Globe className="h-5 w-5 text-sky-400" />
-              <div>
-                <h3 className="text-sm font-bold text-white">Dados Básicos do Aplicativo</h3>
-                <p className="text-xs text-slate-400">
-                  Informações institucionais exibidas aos usuários no app móvel
-                </p>
-              </div>
-            </div>
+          {/* SUB-NAVEGAÇÃO INTERNA CLEAN DAS CONFIGURAÇÕES */}
+          <div className="flex flex-wrap items-center gap-2 border-b border-slate-800 pb-3">
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab("gecko")}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+                settingsSubTab === "gecko"
+                  ? "bg-gradient-brand text-white shadow-brand"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              🦎 GeckoAPI (MaxMilhas & ClickBus)
+            </button>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-              <div>
-                <label className="mb-1 block font-bold text-slate-300">Nome da Aplicação</label>
-                <input
-                  disabled={!isAdmin}
-                  value={appName}
-                  onChange={(e) => setAppName(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60"
-                />
-              </div>
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab("geral")}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+                settingsSubTab === "geral"
+                  ? "bg-gradient-brand text-white shadow-brand"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              📱 Dados Gerais do App
+            </button>
 
-              <div>
-                <label className="mb-1 block font-bold text-slate-300">
-                  E-mail Oficial de Suporte
-                </label>
-                <input
-                  disabled={!isAdmin}
-                  value={supportEmail}
-                  onChange={(e) => setSupportEmail(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60"
-                />
-              </div>
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab("apis")}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+                settingsSubTab === "apis"
+                  ? "bg-gradient-brand text-white shadow-brand"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              🗝️ Gateways & APIs (Asaas, Supabase, Clima)
+            </button>
 
-              <div>
-                <label className="mb-1 block font-bold text-slate-300">
-                  Telefone / WhatsApp Atendimento
-                </label>
-                <input
-                  disabled={!isAdmin}
-                  value={supportPhone}
-                  onChange={(e) => setSupportPhone(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60"
-                />
-              </div>
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab("banners")}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+                settingsSubTab === "banners"
+                  ? "bg-gradient-brand text-white shadow-brand"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              ✨ Banners da Home ({carouselBanners.length})
+            </button>
 
-              <div>
-                <label className="mb-1 block font-bold text-slate-300">Versão Atual do App</label>
-                <input
-                  disabled={!isAdmin}
-                  value={appVersion}
-                  onChange={(e) => setAppVersion(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60 font-mono"
-                />
-              </div>
-            </div>
+            <button
+              type="button"
+              onClick={() => setSettingsSubTab("termos")}
+              className={`px-4 py-2 rounded-xl text-xs font-black transition flex items-center gap-2 ${
+                settingsSubTab === "termos"
+                  ? "bg-gradient-brand text-white shadow-brand"
+                  : "bg-slate-900 text-slate-400 hover:text-white border border-slate-800"
+              }`}
+            >
+              📄 Termos & Privacidade
+            </button>
           </div>
 
-          {/* SECTION B: CENTRAL DE CHAVES & INTEGRAÇÕES DE API */}
-          <div className="rounded-2xl border border-sky-500/30 bg-slate-950 p-6 space-y-6 shadow-elevated">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 font-bold border border-sky-500/20">
-                  <Key className="h-5 w-5" />
+          {/* SUB-TAB 1: GECKOAPI INTEGRATION (MAXMILHAS & CLICKBUS) */}
+          {settingsSubTab === "gecko" && (
+            <div className="rounded-3xl border border-sky-500/40 bg-slate-950 p-6 space-y-5 shadow-elevated">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-12 w-12 place-items-center rounded-2xl bg-sky-500/20 text-sky-400 font-bold border border-sky-500/40 text-xl shadow-brand">
+                    🦎
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                      GeckoAPI · Provedor de Passagens Aéreas & Rodoviárias
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono uppercase font-bold">
+                        CONECTADA ✓
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-300 mt-0.5">
+                      Integração unificada para consulta de passagens MaxMilhas (Aéreo) e ClickBus (Rodoviário) no Bora Pass.
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-                    Central de Gestão de APIs & Integrações
-                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono uppercase">
-                      5 APIs CONECTADAS
-                    </span>
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Gerencie credenciais e webhooks do Asaas Gateway, Supabase, Suporte e Clima
-                  </p>
-                </div>
-              </div>
 
-              <div className="flex items-center gap-2">
-                <Link
-                  to="/admin/diagnostico-asaas"
-                  className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-brand transition flex items-center justify-center gap-1.5 shrink-0"
+                <a
+                  href="https://geckoapi.com.br/docs/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="rounded-xl bg-sky-600 hover:bg-sky-500 px-4 py-2.5 text-xs font-bold text-white shadow-brand transition flex items-center gap-2 shrink-0 no-underline"
                 >
-                  <Sparkles className="h-4 w-4" /> Diagnóstico Asaas ⚡
-                </Link>
-                <button
-                  type="button"
-                  onClick={() => setShowApiModal(true)}
-                  className="rounded-xl bg-sky-600 hover:bg-sky-500 px-4 py-2.5 text-xs font-bold text-white shadow-brand transition flex items-center justify-center gap-2 shrink-0"
-                >
-                  <Key className="h-4 w-4" /> Acessar Chaves de API no Console
-                </button>
-              </div>
-            </div>
-
-            {/* B.1: ASAAS GATEWAY INTEGRATION API */}
-            <div className="rounded-xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
-              <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
-                <div className="flex items-center gap-2">
-                  <CreditCard className="h-4 w-4 text-amber-400" />
-                  <span className="text-xs font-bold text-amber-200">
-                    💳 API Asaas Gateway (Checkout, Pix, Cartão & Assinaturas)
-                  </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono text-slate-400">Ambiente:</span>
-                  <select
-                    disabled={!isAdmin}
-                    value={asaasEnvironment}
-                    onChange={(e) => setAsaasEnvironment(e.target.value as any)}
-                    className="rounded-lg bg-slate-900 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300 outline-none"
-                  >
-                    <option value="production">🟢 Produção (Live)</option>
-                    <option value="sandbox">🧪 Sandbox (Testes)</option>
-                  </select>
-                </div>
+                  <ExternalLink className="h-4 w-4" /> Documentação Oficial GeckoAPI 🌐
+                </a>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
-                <div className="md:col-span-2">
-                  <label className="mb-1 block font-bold text-slate-300">
-                    Asaas Secret API Key ($aact_...)
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div className="md:col-span-2 space-y-1">
+                  <label className="font-extrabold text-white uppercase text-[10px] flex items-center gap-1">
+                    <Key className="h-3.5 w-3.5 text-sky-400" /> GeckoAPI Key Secreta (GECKO_API_KEY)
                   </label>
                   <input
                     disabled={!isAdmin}
                     type="password"
-                    value={asaasApiKey}
-                    onChange={(e) => setAsaasApiKey(e.target.value)}
-                    placeholder="$aact_YTU5YTE0M2Y6NDk2..."
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
+                    value={geckoApiKey}
+                    onChange={(e) => setGeckoApiKey(e.target.value)}
+                    placeholder="gecko_live_..."
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white font-mono focus:border-sky-500 outline-none disabled:opacity-60 text-xs"
                   />
-                </div>
-                <div>
-                  <label className="mb-1 block font-bold text-slate-300">
-                    Asaas Base URL Endpoint
-                  </label>
-                  <input
-                    disabled={!isAdmin}
-                    value={asaasBaseUrl}
-                    onChange={(e) => setAsaasBaseUrl(e.target.value)}
-                    placeholder="https://sandbox.asaas.com/api/v3"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
-                  />
-                </div>
-                <div>
-                  <label className="mb-1 block font-bold text-slate-300">
-                    Webhook Access Token (asaas-access-token)
-                  </label>
-                  <input
-                    disabled={!isAdmin}
-                    value={asaasWebhookToken}
-                    onChange={(e) => setAsaasWebhookToken(e.target.value)}
-                    placeholder="whsec_asaas_live_xxx"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* B.2: DEMAIS INTEGRATION APIS DO SISTEMA */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-sky-400 flex items-center gap-1.5">
-                    <Globe className="h-3.5 w-3.5" /> Supabase Backend API
-                  </span>
-                  <span className="text-[9px] text-emerald-400 font-mono font-bold">200 OK</span>
-                </div>
-                <input
-                  disabled={!isAdmin}
-                  value={supabaseUrl}
-                  onChange={(e) => setSupabaseUrl(e.target.value)}
-                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
-                />
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-amber-400 flex items-center gap-1.5">
-                    <Sun className="h-3.5 w-3.5" /> Climatempo & Open-Meteo API
-                  </span>
-                  <span className="text-[9px] text-emerald-400 font-mono font-bold">200 OK</span>
-                </div>
-                <input
-                  disabled={!isAdmin}
-                  value={climatempoToken}
-                  onChange={(e) => setClimatempoToken(e.target.value)}
-                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
-                />
-              </div>
-
-              <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-purple-400 flex items-center gap-1.5">
-                    <Headphones className="h-3.5 w-3.5" /> Zendesk & WhatsApp Support API
-                  </span>
-                  <span className="text-[9px] text-emerald-400 font-mono font-bold">200 OK</span>
-                </div>
-                <input
-                  disabled={!isAdmin}
-                  value={zendeskToken}
-                  onChange={(e) => setZendeskToken(e.target.value)}
-                  className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* SECTION C: PÁGINA DE POLÍTICA DE PRIVACIDADE E TERMOS DE USO */}
-          <div className="rounded-2xl border border-slate-800 bg-slate-950 p-6 space-y-4 shadow-elevated">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="h-5 w-5 text-purple-400" />
-                <div>
-                  <h3 className="text-sm font-bold text-white">
-                    Página de Política de Privacidade & Termos de Uso
-                  </h3>
-                  <p className="text-xs text-slate-400">
-                    Escreva aqui o texto oficial que será exibido aos turistas no aplicativo na
-                    opção "Termos de Privacidade".
+                  <p className="text-[10px] text-slate-400">
+                    A chave secreta é processada exclusivamente nas Edge Functions <code className="text-sky-300 font-mono">searchFlights</code> e <code className="text-sky-300 font-mono">searchBusTickets</code>.
                   </p>
                 </div>
-              </div>
-              <span className="text-xs text-slate-400 font-mono">
-                {privacyPolicyText.length} caracteres
-              </span>
-            </div>
 
-            <div>
-              <textarea
-                disabled={!isAdmin}
-                rows={12}
-                value={privacyPolicyText}
-                onChange={(e) => setPrivacyPolicyText(e.target.value)}
-                placeholder="Escreva os termos de uso e política de privacidade completos aqui..."
-                className="w-full rounded-2xl border border-slate-800 bg-slate-900 p-4 text-xs text-slate-200 leading-relaxed font-mono focus:border-sky-500 outline-none disabled:opacity-60"
-              />
-            </div>
-          </div>
-
-          {/* SECTION D: GERENCIADOR DO CARROSSEL DE BANNERS DA HOME */}
-          <div className="rounded-2xl border border-amber-500/30 bg-slate-950 p-6 space-y-5 shadow-elevated">
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
-              <div className="flex items-center gap-3">
-                <div className="grid h-10 w-10 place-items-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
-                  <Sparkles className="h-5 w-5" />
+                <div className="space-y-1">
+                  <label className="font-extrabold text-white uppercase text-[10px]">
+                    Endpoint Base da GeckoAPI (GECKO_API_URL)
+                  </label>
+                  <input
+                    disabled={!isAdmin}
+                    value={geckoApiUrl}
+                    onChange={(e) => setGeckoApiUrl(e.target.value)}
+                    placeholder="https://api.geckoapi.com.br/v1"
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-white font-mono focus:border-sky-500 outline-none disabled:opacity-60 text-xs"
+                  />
                 </div>
-                <div>
-                  <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-                    Gerenciador de Banners do Carrossel da Home
-                    <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
-                      {carouselBanners.length} Banners
+
+                <div className="space-y-1">
+                  <label className="font-extrabold text-white uppercase text-[10px]">Provedores Ativos</label>
+                  <div className="flex gap-2 pt-1">
+                    <span className="rounded-xl bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-3 py-2 text-xs font-bold flex items-center gap-1.5 flex-1 justify-center">
+                      ✈️ MaxMilhas (Aéreo)
                     </span>
-                  </h3>
+                    <span className="rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 px-3 py-2 text-xs font-bold flex items-center gap-1.5 flex-1 justify-center">
+                      🚌 ClickBus (Rodoviário)
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SUB-TAB 2: DADOS GERAIS */}
+          {settingsSubTab === "geral" && (
+            <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-4 shadow-elevated">
+              <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+                <Globe className="h-5 w-5 text-sky-400" />
+                <div>
+                  <h3 className="text-sm font-bold text-white">Dados Básicos do Aplicativo</h3>
                   <p className="text-xs text-slate-400">
-                    Crie e personalize banners promocionais (selo, foto, título, gradiente e
-                    cidade).
+                    Informações institucionais exibidas aos usuários no app móvel
                   </p>
                 </div>
               </div>
 
-              {isAdmin && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setEditingCarouselBanner(null);
-                    setShowCarouselBannerModal(true);
-                  }}
-                  className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black px-4 py-2.5 text-xs shadow-md hover:brightness-110 transition flex items-center gap-2"
-                >
-                  <Plus className="h-4 w-4" /> Adicionar Novo Banner ao Carrossel
-                </button>
-              )}
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                <div>
+                  <label className="mb-1 block font-bold text-slate-300">Nome da Aplicação</label>
+                  <input
+                    disabled={!isAdmin}
+                    value={appName}
+                    onChange={(e) => setAppName(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60"
+                  />
+                </div>
 
-            {/* Dica de Reordenação */}
-            {carouselBanners.length > 1 && (
-              <div className="rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-300 flex items-center gap-2">
-                <GripVertical className="h-4 w-4 shrink-0 text-amber-400" />
-                <span>
-                  <strong>Dica de Organização:</strong> Arraste e solte os cards ou use as setas{" "}
-                  <strong>◀ ▶</strong> para mudar a ordem dos banners no carrossel da Home.
-                </span>
+                <div>
+                  <label className="mb-1 block font-bold text-slate-300">E-mail Oficial de Suporte</label>
+                  <input
+                    disabled={!isAdmin}
+                    value={supportEmail}
+                    onChange={(e) => setSupportEmail(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-bold text-slate-300">Telefone / WhatsApp Atendimento</label>
+                  <input
+                    disabled={!isAdmin}
+                    value={supportPhone}
+                    onChange={(e) => setSupportPhone(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60"
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-1 block font-bold text-slate-300">Versão Atual do App</label>
+                  <input
+                    disabled={!isAdmin}
+                    value={appVersion}
+                    onChange={(e) => setAppVersion(e.target.value)}
+                    className="w-full rounded-2xl border border-slate-800 bg-slate-900 px-3.5 py-2.5 text-white focus:border-sky-500 outline-none disabled:opacity-60 font-mono"
+                  />
+                </div>
               </div>
-            )}
+            </div>
+          )}
 
-            {/* Lista de Banners Cadastrados */}
-            {carouselBanners.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-slate-800 bg-slate-900/40 p-8 text-center space-y-3">
-                <p className="text-xs text-slate-400">
-                  Nenhum banner personalizado foi adicionado ainda. O aplicativo utiliza os banners
-                  dinâmicos da cidade selecionada.
-                </p>
+          {/* SUB-TAB 3: GATEWAYS & DEMAIS APIS */}
+          {settingsSubTab === "apis" && (
+            <div className="rounded-3xl border border-sky-500/30 bg-slate-950 p-6 space-y-6 shadow-elevated">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-sky-500/10 text-sky-400 font-bold border border-sky-500/20">
+                    <Key className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                      Central de Gateways & APIs do Sistema
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full font-mono uppercase">
+                        5 APIS CONECTADAS
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Gerencie credenciais e webhooks do Asaas Gateway, Supabase, Suporte e Clima
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Link
+                    to="/admin/diagnostico-asaas"
+                    className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-brand transition flex items-center justify-center gap-1.5 shrink-0"
+                  >
+                    <Sparkles className="h-4 w-4" /> Diagnóstico Asaas ⚡
+                  </Link>
+                  <button
+                    type="button"
+                    onClick={() => setShowApiModal(true)}
+                    className="rounded-xl bg-sky-600 hover:bg-sky-500 px-4 py-2.5 text-xs font-bold text-white shadow-brand transition flex items-center justify-center gap-2 shrink-0"
+                  >
+                    <Key className="h-4 w-4" /> Acessar Console Chaves
+                  </button>
+                </div>
+              </div>
+
+              {/* B.1: ASAAS GATEWAY INTEGRATION API */}
+              <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4 space-y-3">
+                <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <CreditCard className="h-4 w-4 text-amber-400" />
+                    <span className="text-xs font-bold text-amber-200">
+                      💳 API Asaas Gateway (Checkout, Pix, Cartão & Assinaturas)
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] font-mono text-slate-400">Ambiente:</span>
+                    <select
+                      disabled={!isAdmin}
+                      value={asaasEnvironment}
+                      onChange={(e) => setAsaasEnvironment(e.target.value as any)}
+                      className="rounded-lg bg-slate-900 border border-amber-500/30 px-2 py-0.5 text-[10px] font-bold text-amber-300 outline-none"
+                    >
+                      <option value="production">🟢 Produção (Live)</option>
+                      <option value="sandbox">🧪 Sandbox (Testes)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  <div className="md:col-span-2">
+                    <label className="mb-1 block font-bold text-slate-300">Asaas Secret API Key ($aact_...)</label>
+                    <input
+                      disabled={!isAdmin}
+                      type="password"
+                      value={asaasApiKey}
+                      onChange={(e) => setAsaasApiKey(e.target.value)}
+                      placeholder="$aact_YTU5YTE0M2Y6NDk2..."
+                      className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-bold text-slate-300">Asaas Base URL Endpoint</label>
+                    <input
+                      disabled={!isAdmin}
+                      value={asaasBaseUrl}
+                      onChange={(e) => setAsaasBaseUrl(e.target.value)}
+                      placeholder="https://sandbox.asaas.com/api/v3"
+                      className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
+                    />
+                  </div>
+                  <div>
+                    <label className="mb-1 block font-bold text-slate-300">Webhook Token (asaas-access-token)</label>
+                    <input
+                      disabled={!isAdmin}
+                      value={asaasWebhookToken}
+                      onChange={(e) => setAsaasWebhookToken(e.target.value)}
+                      placeholder="whsec_asaas_live_xxx"
+                      className="w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-white font-mono focus:border-amber-500 outline-none disabled:opacity-60"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* B.2: DEMAIS APIS DO SISTEMA */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-sky-400 flex items-center gap-1.5">
+                      <Globe className="h-3.5 w-3.5" /> Supabase Backend API
+                    </span>
+                    <span className="text-[9px] text-emerald-400 font-mono font-bold">200 OK</span>
+                  </div>
+                  <input
+                    disabled={!isAdmin}
+                    value={supabaseUrl}
+                    onChange={(e) => setSupabaseUrl(e.target.value)}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-amber-400 flex items-center gap-1.5">
+                      <Sun className="h-3.5 w-3.5" /> Climatempo & Open-Meteo
+                    </span>
+                    <span className="text-[9px] text-emerald-400 font-mono font-bold">200 OK</span>
+                  </div>
+                  <input
+                    disabled={!isAdmin}
+                    value={climatempoToken}
+                    onChange={(e) => setClimatempoToken(e.target.value)}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
+                  />
+                </div>
+
+                <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-3.5 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="font-bold text-purple-400 flex items-center gap-1.5">
+                      <Headphones className="h-3.5 w-3.5" /> Zendesk Support API
+                    </span>
+                    <span className="text-[9px] text-emerald-400 font-mono font-bold">200 OK</span>
+                  </div>
+                  <input
+                    disabled={!isAdmin}
+                    value={zendeskToken}
+                    onChange={(e) => setZendeskToken(e.target.value)}
+                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-3 py-1.5 text-white font-mono text-[11px] outline-none"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* SUB-TAB 4: BANNERS HOME */}
+          {settingsSubTab === "banners" && (
+            <div className="rounded-3xl border border-amber-500/30 bg-slate-950 p-6 space-y-5 shadow-elevated">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-4">
+                <div className="flex items-center gap-3">
+                  <div className="grid h-10 w-10 place-items-center rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
+                    <Sparkles className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-extrabold text-white flex items-center gap-2">
+                      Gerenciador de Banners da Home
+                      <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2 py-0.5 rounded-full font-bold">
+                        {carouselBanners.length} Banners
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-400">
+                      Personalize os banners promocionais da página inicial do Bora Pass.
+                    </p>
+                  </div>
+                </div>
+
                 {isAdmin && (
                   <button
                     type="button"
@@ -3801,164 +3888,69 @@ export function AdminPanelPage() {
                       setEditingCarouselBanner(null);
                       setShowCarouselBannerModal(true);
                     }}
-                    className="rounded-xl bg-amber-500/10 text-amber-300 border border-amber-500/30 px-4 py-2 text-xs font-bold hover:bg-amber-500/20 transition inline-flex items-center gap-1.5"
+                    className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black px-4 py-2.5 text-xs shadow-md hover:brightness-110 transition flex items-center gap-2"
                   >
-                    <Plus className="h-3.5 w-3.5" /> Criar Primeiro Banner Agora
+                    <Plus className="h-4 w-4" /> Novo Banner
                   </button>
                 )}
               </div>
-            ) : (
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {carouselBanners.map((b, idx) => (
                   <div
                     key={b.id}
-                    draggable={isAdmin}
-                    onDragStart={(e) => {
-                      setDraggedBannerIdx(idx);
-                      e.dataTransfer.effectAllowed = "move";
-                    }}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      e.dataTransfer.dropEffect = "move";
-                    }}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      if (draggedBannerIdx !== null && draggedBannerIdx !== idx) {
-                        moveCarouselBanner(draggedBannerIdx, idx);
-                        setDraggedBannerIdx(null);
-                      }
-                    }}
-                    onDragEnd={() => setDraggedBannerIdx(null)}
-                    className={`rounded-2xl border bg-slate-900 p-4 space-y-3 flex flex-col justify-between transition-all duration-200 ${
-                      draggedBannerIdx === idx
-                        ? "opacity-30 border-amber-500 scale-95"
-                        : b.active
-                          ? "border-slate-800 hover:border-amber-500/50"
-                          : "border-slate-800/40 opacity-60"
-                    }`}
+                    className="rounded-2xl border border-slate-800 bg-slate-900 p-4 space-y-3 flex flex-col justify-between"
                   >
-                    {/* Bar Superior de Ordem e Alça de Arrasto */}
-                    <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
-                      <div
-                        className="flex items-center gap-2"
-                        title="Clique e arraste para reordenar"
-                      >
-                        <GripVertical className="h-4 w-4 text-amber-400 shrink-0 cursor-grab active:cursor-grabbing hover:text-amber-300 transition" />
-                        <span className="font-extrabold text-amber-300 text-[10px] bg-amber-500/10 border border-amber-500/30 px-2 py-0.5 rounded-full font-mono uppercase">
-                          Posição #{idx + 1}
-                        </span>
-                      </div>
-
-                      {isAdmin && (
-                        <div className="flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => moveCarouselBanner(idx, idx - 1)}
-                            disabled={idx === 0}
-                            className="rounded-lg bg-slate-800 p-1 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition"
-                            title="Mover para Esquerda (Anterior)"
-                          >
-                            <ArrowLeft className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveCarouselBanner(idx, idx + 1)}
-                            disabled={idx === carouselBanners.length - 1}
-                            className="rounded-lg bg-slate-800 p-1 text-slate-300 hover:bg-slate-700 hover:text-white disabled:opacity-30 disabled:pointer-events-none transition"
-                            title="Mover para Direita (Próximo)"
-                          >
-                            <ArrowRight className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Card Preview Mini */}
                     <div className="w-full h-32 rounded-2xl border border-slate-800 overflow-hidden relative group">
                       <img src={b.image} alt={b.title} className="h-full w-full object-cover" />
-                      <div
-                        className={`absolute inset-0 bg-gradient-to-r ${b.gradient || "from-amber-600 via-orange-600 to-rose-700"} opacity-80 mix-blend-multiply`}
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent p-3 flex flex-col justify-end text-white space-y-0.5">
-                        <span className="inline-self-start rounded-full bg-white/20 px-2 py-0.5 text-[8px] font-black uppercase tracking-wider backdrop-blur">
+                      <div className={`absolute inset-0 bg-gradient-to-r ${b.gradient || "from-amber-600 to-rose-700"} opacity-80 mix-blend-multiply`} />
+                      <div className="absolute inset-0 p-3 flex flex-col justify-end text-white">
+                        <span className="self-start rounded-full bg-white/20 px-2 py-0.5 text-[8px] font-black uppercase">
                           {b.tag}
                         </span>
-                        <h4 className="text-xs font-black leading-tight drop-shadow line-clamp-1">
-                          {b.title}
-                        </h4>
-                        <p className="text-[10px] text-white/80 line-clamp-1">{b.subtitle}</p>
+                        <h4 className="text-xs font-black line-clamp-1">{b.title}</h4>
                       </div>
-                    </div>
-
-                    <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/60">
-                      <span className="text-slate-400 font-bold flex items-center gap-1">
-                        📍 {b.cityName || "Todas as Cidades"}
-                      </span>
-                      {isAdmin && (
-                        <div className="flex items-center gap-2">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const updated = carouselBanners.map((item) =>
-                                item.id === b.id ? { ...item, active: !item.active } : item,
-                              );
-                              setCarouselBanners(updated);
-                              saveStoredCarouselBanners(updated);
-                              toast.success(
-                                `Banner "${b.title}" ${!b.active ? "ativado" : "desativado"}!`,
-                              );
-                            }}
-                            className={`text-[10px] font-bold px-2 py-1 rounded-lg border ${
-                              b.active
-                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30"
-                                : "bg-slate-800 text-slate-400 border-slate-700"
-                            }`}
-                          >
-                            {b.active ? "Ativo ✓" : "Inativo ⏸"}
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setEditingCarouselBanner(b);
-                              setShowCarouselBannerModal(true);
-                            }}
-                            className="rounded-lg bg-slate-800 p-1.5 text-sky-400 hover:bg-slate-700"
-                            title="Editar Banner"
-                          >
-                            <Pencil className="h-3.5 w-3.5" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (confirm(`Excluir o banner "${b.title}"?`)) {
-                                const updated = carouselBanners.filter((item) => item.id !== b.id);
-                                setCarouselBanners(updated);
-                                saveStoredCarouselBanners(updated);
-                                toast.success("Banner excluído com sucesso!");
-                              }
-                            }}
-                            className="rounded-lg bg-slate-800 p-1.5 text-rose-400 hover:bg-rose-900/40"
-                            title="Excluir Banner"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
-          {/* BOTÃO SALVAR (ADMIN ONLY) */}
+          {/* SUB-TAB 5: TERMOS & PRIVACIDADE */}
+          {settingsSubTab === "termos" && (
+            <div className="rounded-3xl border border-slate-800 bg-slate-950 p-6 space-y-4 shadow-elevated">
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-purple-400" />
+                  <div>
+                    <h3 className="text-sm font-bold text-white">Política de Privacidade & Termos de Uso</h3>
+                    <p className="text-xs text-slate-400">
+                      Texto oficial exibido aos usuários no aplicativo.
+                    </p>
+                  </div>
+                </div>
+                <span className="text-xs text-slate-400 font-mono">{privacyPolicyText.length} caracteres</span>
+              </div>
+
+              <textarea
+                disabled={!isAdmin}
+                rows={12}
+                value={privacyPolicyText}
+                onChange={(e) => setPrivacyPolicyText(e.target.value)}
+                className="w-full rounded-2xl border border-slate-800 bg-slate-900 p-4 text-xs text-slate-200 leading-relaxed font-mono focus:border-sky-500 outline-none disabled:opacity-60"
+              />
+            </div>
+          )}
+
+          {/* BOTÃO SALVAR CONFIGURAÇÕES */}
           {isAdmin && (
             <div className="flex justify-end pt-2">
               <button
                 type="submit"
-                className="rounded-xl bg-gradient-brand px-6 py-3 text-xs font-bold text-white shadow-brand hover:opacity-90 transition flex items-center gap-2"
+                className="rounded-2xl bg-gradient-brand px-8 py-3.5 text-xs font-black text-white shadow-brand hover:opacity-95 transition flex items-center gap-2 active:scale-95"
               >
-                <Save className="h-4 w-4" /> Salvar Configurações Globais
+                <Save className="h-4.5 w-4.5" /> Salvar Alterações de Configuração
               </button>
             </div>
           )}

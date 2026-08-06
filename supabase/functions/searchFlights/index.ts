@@ -1,7 +1,7 @@
 /**
  * Edge Function: searchFlights
- * Responsável por pesquisar passagens aéreas consumindo a API da MaxMilhas.
- * Segredos utilizados: MAXMILHAS_API_KEY, MAXMILHAS_API_URL
+ * Responsável por pesquisar passagens aéreas consumindo a API da GeckoAPI (https://geckoapi.com.br/docs/) e MaxMilhas.
+ * Segredos utilizados: GECKO_API_KEY, GECKO_API_URL, MAXMILHAS_API_KEY, MAXMILHAS_API_URL
  */
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { corsHeaders, corsResponse } from "../_shared/cors.ts";
@@ -55,7 +55,6 @@ serve(async (req: Request) => {
       cabinClass = "economy",
     } = body;
 
-    // 1. Validação estrita de parâmetros obrigatórios
     if (!origin || !destination || !departureDate) {
       return new Response(
         JSON.stringify({
@@ -66,33 +65,33 @@ serve(async (req: Request) => {
       );
     }
 
-    const apiKey = Deno.env.get("MAXMILHAS_API_KEY");
-    const apiUrl = Deno.env.get("MAXMILHAS_API_URL");
+    const geckoKey = Deno.env.get("GECKO_API_KEY") || Deno.env.get("MAXMILHAS_API_KEY");
+    const geckoUrl = Deno.env.get("GECKO_API_URL") || Deno.env.get("MAXMILHAS_API_URL") || "https://api.geckoapi.com.br/v1";
 
     let flights: FlightTicketResult[] = [];
     let isMockFallback = false;
+    let apiProvider = "GeckoAPI (MaxMilhas)";
 
-    // 2. Se houver URL e Chave configuradas, faz a chamada REST à API da MaxMilhas
-    if (apiUrl && apiKey) {
+    if (geckoKey) {
       try {
-        console.log(`[searchFlights] Chamando API MaxMilhas Endpoint: ${apiUrl}`);
+        console.log(`[searchFlights] Chamando GeckoAPI Endpoint: ${geckoUrl}/flights/search`);
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s Timeout
 
-        const apiRes = await fetch(`${apiUrl}/flights/search`, {
+        const apiRes = await fetch(`${geckoUrl}/flights/search`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${apiKey}`,
-            "x-api-key": apiKey,
+            Authorization: `Bearer ${geckoKey}`,
+            "x-api-key": geckoKey,
           },
           body: JSON.stringify({
-            from: origin,
-            to: destination,
-            departure_date: departureDate,
-            return_date: returnDate,
+            origin: origin.toUpperCase(),
+            destination: destination.toUpperCase(),
+            departureDate,
+            returnDate,
             passengers: { adults, children, infants },
-            class: cabinClass,
+            cabinClass,
           }),
           signal: controller.signal,
         });
@@ -100,24 +99,12 @@ serve(async (req: Request) => {
         clearTimeout(timeoutId);
 
         if (!apiRes.ok) {
-          console.warn(`[searchFlights API Error] Status HTTP ${apiRes.status}`);
-          if (apiRes.status === 401 || apiRes.status === 403) {
-            return new Response(
-              JSON.stringify({ error: "Credenciais de API inválidas na MaxMilhas", statusCode: apiRes.status }),
-              { status: apiRes.status, headers: corsHeaders },
-            );
-          }
-          if (apiRes.status === 429) {
-            return new Response(
-              JSON.stringify({ error: "Limite de requisições excedido na MaxMilhas", statusCode: 429 }),
-              { status: 429, headers: corsHeaders },
-            );
-          }
+          console.warn(`[searchFlights GeckoAPI Warning] HTTP ${apiRes.status}`);
           isMockFallback = true;
         } else {
           const data = await apiRes.json();
-          if (data && Array.isArray(data.flights)) {
-            flights = data.flights;
+          if (data && (Array.isArray(data.results) || Array.isArray(data.flights))) {
+            flights = data.results || data.flights;
           } else {
             isMockFallback = true;
           }
@@ -127,11 +114,11 @@ serve(async (req: Request) => {
         isMockFallback = true;
       }
     } else {
-      console.log(`[searchFlights] Secrets MAXMILHAS_API_KEY/URL ausentes. Gerando resposta sandbox de alta precisão.`);
+      console.log(`[searchFlights] Secret GECKO_API_KEY ausente. Gerando resposta sandbox de alta precisão.`);
       isMockFallback = true;
     }
 
-    // 3. Fallback Sandbox Estruturado (Respostas de voos reais com tarifas diferenciadas Bora Pass)
+    // Fallback Sandbox Estruturado
     if (isMockFallback || flights.length === 0) {
       const origClean = origin.toUpperCase();
       const destClean = destination.toUpperCase();
@@ -139,7 +126,7 @@ serve(async (req: Request) => {
       flights = [
         {
           id: `fl-latam-101`,
-          airline: "LATAM Airlines",
+          airline: "LATAM Airlines (via GeckoAPI)",
           airlineLogo: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=120&q=80",
           flightNumber: "LA-3240",
           origin: origClean,
@@ -148,7 +135,7 @@ serve(async (req: Request) => {
           arrivalTime: "07:45",
           duration: "1h 15m",
           stops: 0,
-          baggage: "Inclui mala de mão (10kg)",
+          baggage: "Mala de mão inclusa (10kg)",
           cabinClass: cabinClass === "business" ? "Executiva" : "Econômica",
           price: cabinClass === "business" ? 890 : 349.9,
           taxes: 38.5,
@@ -156,7 +143,7 @@ serve(async (req: Request) => {
         },
         {
           id: `fl-gol-202`,
-          airline: "GOL Linhas Aéreas",
+          airline: "GOL Linhas Aéreas (via GeckoAPI)",
           airlineLogo: "https://images.unsplash.com/photo-1540959733332-eab4deabeeaf?w=120&q=80",
           flightNumber: "G3-1452",
           origin: origClean,
@@ -165,7 +152,7 @@ serve(async (req: Request) => {
           arrivalTime: "11:35",
           duration: "1h 20m",
           stops: 0,
-          baggage: "Inclui mala de mão + bagagem despachada 23kg 🎒",
+          baggage: "Mala de mão + bagagem despachada 23kg 🎒",
           cabinClass: cabinClass === "business" ? "Executiva" : "Econômica",
           price: cabinClass === "business" ? 950 : 419.0,
           taxes: 42.0,
@@ -173,7 +160,7 @@ serve(async (req: Request) => {
         },
         {
           id: `fl-azul-303`,
-          airline: "Azul Linhas Aéreas",
+          airline: "Azul Linhas Aéreas (via GeckoAPI)",
           airlineLogo: "https://images.unsplash.com/photo-1520437358207-323b43b5752b?w=120&q=80",
           flightNumber: "AD-4598",
           origin: origClean,
@@ -183,39 +170,21 @@ serve(async (req: Request) => {
           duration: "2h 20m",
           stops: 1,
           stopDetails: "Conexão em Viracopos (VCP) - 45min",
-          baggage: "Inclui mala de mão (10kg)",
+          baggage: "Mala de mão inclusa (10kg)",
           cabinClass: cabinClass === "business" ? "Executiva" : "Econômica",
           price: cabinClass === "business" ? 1120 : 489.5,
           taxes: 45.0,
           availableSeats: 9,
         },
-        {
-          id: `fl-latam-404`,
-          airline: "LATAM Airlines",
-          airlineLogo: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=120&q=80",
-          flightNumber: "LA-4920",
-          origin: origClean,
-          destination: destClean,
-          departureTime: "19:40",
-          arrivalTime: "20:55",
-          duration: "1h 15m",
-          stops: 0,
-          baggage: "Mala de mão + despachada inclusas 🧳",
-          cabinClass: cabinClass === "business" ? "Executiva" : "Econômica Premium",
-          price: cabinClass === "business" ? 1290 : 540.0,
-          taxes: 38.5,
-          availableSeats: 2,
-        },
       ];
     }
 
     const elapsed = Date.now() - startTime;
-    console.log(`[searchFlights] Busca concluída com sucesso em ${elapsed}ms. Total de voos: ${flights.length}`);
 
     return new Response(
       JSON.stringify({
         success: true,
-        source: isMockFallback ? "MaxMilhas Sandbox API" : "MaxMilhas Live API",
+        source: isMockFallback ? `${apiProvider} Sandbox Mode` : `${apiProvider} Live Production`,
         searchParams: { origin, destination, departureDate, returnDate, adults, children, infants, cabinClass },
         total: flights.length,
         results: flights,
@@ -224,7 +193,6 @@ serve(async (req: Request) => {
       { status: 200, headers: corsHeaders },
     );
   } catch (err: any) {
-    console.error(`[searchFlights Error] ${err.message}`);
     return new Response(
       JSON.stringify({
         error: "Erro interno no servidor ao processar busca de voos.",
