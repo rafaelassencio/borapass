@@ -140,7 +140,7 @@ export function AdminLayout({
       icon: <Map className="h-4 w-4 text-amber-400" />,
       badge: "Novo",
     },
-    { id: "payments", label: "Pagamentos", icon: <CreditCard className="h-4 w-4" /> },
+    { id: "payments", label: "Transações & Financeiro", icon: <CreditCard className="h-4 w-4 text-emerald-400" /> },
     { id: "reports", label: "Relatórios", icon: <TrendingUp className="h-4 w-4" /> },
     { id: "reviews", label: "Avaliações", icon: <Star className="h-4 w-4" /> },
     {
