@@ -606,6 +606,29 @@ export function Home() {
         {/* ========================================================= */}
         <section className="px-5 pt-2">
           <div className="flex snap-x snap-mandatory gap-3.5 overflow-x-auto pb-2 scrollbar-hide">
+            {/* BANNER EXCLUSIVO MÓDULO PASSAGENS */}
+            <div
+              onClick={() => navigate({ to: "/passagens" })}
+              className="w-[280px] sm:w-[340px] h-[150px] shrink-0 snap-start cursor-pointer rounded-3xl border border-sky-400/40 shadow-brand overflow-hidden relative group bg-slate-950"
+            >
+              <img
+                src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=600&q=80"
+                alt="Passagens Aéreas e Rodoviárias"
+                className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500 opacity-70"
+              />
+              <div className="absolute inset-0 bg-gradient-to-r from-sky-950/90 via-slate-950/70 to-amber-950/80" />
+              <div className="absolute inset-0 p-4 flex flex-col justify-end text-white space-y-1">
+                <span className="self-start rounded-full bg-gradient-brand px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-brand">
+                  ✈️ MaxMilhas & ClickBus
+                </span>
+                <h3 className="text-sm sm:text-base font-black leading-tight drop-shadow-md">
+                  Passagens Aéreas & Rodoviárias 🚌
+                </h3>
+                <p className="text-[11px] text-amber-300 font-bold opacity-90">
+                  Economize até 40% em voos e ônibus nacionais
+                </p>
+              </div>
+            </div>
             {heroBanners.map((b) => (
               <div
                 key={b.id}

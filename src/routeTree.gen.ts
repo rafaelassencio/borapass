@@ -21,6 +21,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as ManagementRouteImport } from './routes/management'
 import { Route as PagamentosRouteImport } from './routes/pagamentos'
 import { Route as ParceiroRouteImport } from './routes/parceiro'
+import { Route as PassagensRouteImport } from './routes/passagens'
 import { Route as PerfilRouteImport } from './routes/perfil'
 import { Route as PlanejarRouteImport } from './routes/planejar'
 import { Route as PremiumRouteImport } from './routes/premium'
@@ -97,6 +98,11 @@ const PagamentosRoute = PagamentosRouteImport.update({
 const ParceiroRoute = ParceiroRouteImport.update({
   id: '/parceiro',
   path: '/parceiro',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PassagensRoute = PassagensRouteImport.update({
+  id: '/passagens',
+  path: '/passagens',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PerfilRoute = PerfilRouteImport.update({
@@ -198,6 +204,7 @@ export interface FileRoutesByFullPath {
   '/management': typeof ManagementRoute
   '/pagamentos': typeof PagamentosRoute
   '/parceiro': typeof ParceiroRoute
+  '/passagens': typeof PassagensRoute
   '/perfil': typeof PerfilRoute
   '/planejar': typeof PlanejarRoute
   '/premium': typeof PremiumRoute
@@ -229,6 +236,7 @@ export interface FileRoutesByTo {
   '/management': typeof ManagementRoute
   '/pagamentos': typeof PagamentosRoute
   '/parceiro': typeof ParceiroRoute
+  '/passagens': typeof PassagensRoute
   '/perfil': typeof PerfilRoute
   '/planejar': typeof PlanejarRoute
   '/premium': typeof PremiumRoute
@@ -261,6 +269,7 @@ export interface FileRoutesById {
   '/management': typeof ManagementRoute
   '/pagamentos': typeof PagamentosRoute
   '/parceiro': typeof ParceiroRoute
+  '/passagens': typeof PassagensRoute
   '/perfil': typeof PerfilRoute
   '/planejar': typeof PlanejarRoute
   '/premium': typeof PremiumRoute
@@ -294,6 +303,7 @@ export interface FileRouteTypes {
     | '/management'
     | '/pagamentos'
     | '/parceiro'
+    | '/passagens'
     | '/perfil'
     | '/planejar'
     | '/premium'
@@ -325,6 +335,7 @@ export interface FileRouteTypes {
     | '/management'
     | '/pagamentos'
     | '/parceiro'
+    | '/passagens'
     | '/perfil'
     | '/planejar'
     | '/premium'
@@ -356,6 +367,7 @@ export interface FileRouteTypes {
     | '/management'
     | '/pagamentos'
     | '/parceiro'
+    | '/passagens'
     | '/perfil'
     | '/planejar'
     | '/premium'
@@ -388,6 +400,7 @@ export interface RootRouteChildren {
   ManagementRoute: typeof ManagementRoute
   PagamentosRoute: typeof PagamentosRoute
   ParceiroRoute: typeof ParceiroRoute
+  PassagensRoute: typeof PassagensRoute
   PerfilRoute: typeof PerfilRoute
   PlanejarRoute: typeof PlanejarRoute
   PremiumRoute: typeof PremiumRoute
@@ -490,6 +503,13 @@ declare module '@tanstack/react-router' {
       path: '/parceiro'
       fullPath: '/parceiro'
       preLoaderRoute: typeof ParceiroRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/passagens': {
+      id: '/passagens'
+      path: '/passagens'
+      fullPath: '/passagens'
+      preLoaderRoute: typeof PassagensRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/perfil': {
@@ -637,6 +657,7 @@ const rootRouteChildren: RootRouteChildren = {
   ManagementRoute: ManagementRoute,
   PagamentosRoute: PagamentosRoute,
   ParceiroRoute: ParceiroRoute,
+  PassagensRoute: PassagensRoute,
   PerfilRoute: PerfilRoute,
   PlanejarRoute: PlanejarRoute,
   PremiumRoute: PremiumRoute,

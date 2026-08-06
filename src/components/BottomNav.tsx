@@ -1,5 +1,5 @@
 import { Link, useRouterState } from "@tanstack/react-router";
-import { Home, Compass, CalendarDays, Heart, User, Ticket, ShieldAlert, Calendar, LayoutGrid, DollarSign } from "lucide-react";
+import { Home, Compass, CalendarDays, Heart, User, Ticket, ShieldAlert, Calendar, LayoutGrid, DollarSign, Plane } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthContext } from "@/context/AuthContext";
 
@@ -12,8 +12,8 @@ type NavItem = {
 const travelerNavItems: NavItem[] = [
   { to: "/", label: "Home", icon: Home },
   { to: "/explorar", label: "Explorar", icon: Compass },
+  { to: "/passagens", label: "Passagens", icon: Plane },
   { to: "/planejar", label: "Planejar", icon: CalendarDays },
-  { to: "/favoritos", label: "Favoritos", icon: Heart },
   { to: "/perfil", label: "Perfil", icon: User },
 ];
 
