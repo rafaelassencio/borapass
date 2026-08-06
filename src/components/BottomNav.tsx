@@ -20,14 +20,19 @@ const travelerNavItems: NavItem[] = [
 const adminNavItems: NavItem[] = [
   { to: "/", label: "Home", icon: Home },
   { to: "/explorar", label: "Explorar", icon: Compass },
-  { to: "/planejar", label: "Planejar", icon: CalendarDays },
+  { to: "/passagens", label: "Passagens", icon: Plane },
   { to: "/admin", label: "Admin Console", icon: ShieldAlert },
+  { to: "/perfil", label: "Perfil", icon: User },
+];
+
+const supportNavItems: NavItem[] = [
+  { to: "/admin", label: "Central Suporte", icon: ShieldAlert },
   { to: "/perfil", label: "Perfil", icon: User },
 ];
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  const { isPurePartner, primaryRole, isAdmin, partnerStore } = useAuthContext();
+  const { isPurePartner, primaryRole, isAdmin, isSupport, partnerStore } = useAuthContext();
 
   const partnerCategory = (partnerStore?.category || "Gastronomia").toLowerCase();
   const isBookingBased =
@@ -52,6 +57,8 @@ export function BottomNav() {
   let currentNavItems = travelerNavItems;
   if (isPurePartner || primaryRole === "Parceiro") {
     currentNavItems = partnerNavItems;
+  } else if (isSupport || primaryRole === "Suporte") {
+    currentNavItems = supportNavItems;
   } else if (isAdmin || primaryRole === "Administrador") {
     currentNavItems = adminNavItems;
   }

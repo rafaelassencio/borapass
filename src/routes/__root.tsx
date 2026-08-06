@@ -4,6 +4,8 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
+  useNavigate,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
@@ -134,8 +136,10 @@ function RootShell({ children }: { children: ReactNode }) {
 }
 
 function AppContent() {
-  const { loading, isLoaded } = useAuthContext();
+  const { loading, isLoaded, isSupport, primaryRole, simulatedRole, user } = useAuthContext();
   const [maxTimeoutReached, setMaxTimeoutReached] = useState(false);
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const navigate = useNavigate();
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -143,6 +147,17 @@ function AppContent() {
     }, 1200);
     return () => clearTimeout(timer);
   }, []);
+
+  // Redirecionamento automático do Usuário Suporte diretamente para a Central Admin (/admin)
+  useEffect(() => {
+    if (isLoaded && user) {
+      const isSupportUser = (isSupport || primaryRole === "Suporte") && (!simulatedRole || simulatedRole === "support");
+      const isTravelerRoute = pathname === "/" || pathname === "/explorar" || pathname === "/planejar" || pathname === "/favoritos";
+      if (isSupportUser && isTravelerRoute) {
+        navigate({ to: "/admin" });
+      }
+    }
+  }, [isLoaded, user, isSupport, primaryRole, simulatedRole, pathname, navigate]);
 
   if ((loading || !isLoaded) && !maxTimeoutReached) {
     return <SplashScreen />;
