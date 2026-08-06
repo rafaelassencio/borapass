@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { AppShell, PageHeader } from "@/components/AppShell";
 import { Search, Loader2, Heart, Compass } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -205,13 +205,19 @@ function Explorar() {
   const { user } = useAuth();
   const { isFavorite, toggleFavorite } = useFavorites(user?.id);
   const { isPremium } = useRoles(user?.id);
-  const { cat } = Route.useSearch();
-  const [query, setQuery] = useState("");
+  const { cat, q } = Route.useSearch();
+  const [query, setQuery] = useState(q ?? "");
   const initial = CATS.find((c) => c.slug === cat)?.slug ?? "todos";
   const [active, setActive] = useState<string>(initial);
   const [priceFilter, setPriceFilter] = useState<PriceFilterType>("all");
   const [city] = useSelectedCity();
   const { data, isLoading } = useAllListingsForCity(city);
+
+  useEffect(() => {
+    if (q !== undefined) {
+      setQuery(q);
+    }
+  }, [q]);
 
   const filtered = useMemo(() => {
     const rows = data ?? [];
@@ -420,11 +426,130 @@ function Explorar() {
               );
             })}
             {filtered.length === 0 && (
-              <div className="col-span-2 rounded-2xl border border-dashed border-border bg-card p-8 text-center">
-                <Compass className="mx-auto h-8 w-8 text-muted-foreground" />
-                <p className="mt-3 text-sm font-semibold">
-                  Nenhum anúncio encontrado para esses filtros{city ? ` em ${city.name}` : ""}.
-                </p>
+              <div className="col-span-2 space-y-6">
+                <div className="rounded-3xl border border-amber-500/30 bg-gradient-to-b from-slate-900 via-slate-950 to-slate-900 p-6 text-center shadow-elevated text-white space-y-3">
+                  <div className="mx-auto grid h-12 w-12 place-items-center rounded-2xl bg-amber-500/20 text-amber-400 font-bold border border-amber-500/40 text-xl">
+                    🔍
+                  </div>
+                  <h3 className="text-sm font-extrabold text-white">
+                    {query ? `Nenhum resultado para "${query}"` : "Nenhum anúncio encontrado"}
+                  </h3>
+                  <p className="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+                    Não encontramos nenhum passeio, cupom, hospedagem ou evento correspondente aos filtros aplicados
+                    {city ? ` em ${city.name}` : ""}.
+                  </p>
+                  <div className="pt-1 flex justify-center gap-2">
+                    <button
+                      onClick={() => {
+                        setQuery("");
+                        setActive("todos");
+                        setPriceFilter("all");
+                      }}
+                      className="rounded-full bg-gradient-brand px-5 py-2 text-xs font-black text-white shadow-brand hover:brightness-110 active:scale-95 transition"
+                    >
+                      Limpar busca & Filtros
+                    </button>
+                  </div>
+                </div>
+
+                {/* Seção de Sugestões Similares */}
+                {data && data.length > 0 && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-xs font-black uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                        ✨ Sugestões Populares para Você
+                      </h4>
+                      <span className="text-[10px] font-bold text-amber-500">
+                        {data.slice(0, 6).length} sugestões
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      {data.slice(0, 6).map((x) => {
+                        const r = routeForCategory(x.category, x.id);
+                        const offerType = (x as { offer_type?: string }).offer_type;
+                        const isFree =
+                          x.price === 0 ||
+                          offerType === "perk" ||
+                          (x.discount ?? "").toLowerCase().includes("gratis") ||
+                          (x.discount ?? "").toLowerCase().includes("grátis") ||
+                          (x.discount ?? "").toLowerCase().includes("cortesia");
+                        const isFav = isFavorite(x.id);
+
+                        return (
+                          <Link
+                            key={`sug-${x.id}`}
+                            to={r.to as string}
+                            params={r.params as never}
+                            className="overflow-hidden rounded-2xl bg-card shadow-soft transition hover:shadow-elevated border border-border/60 relative group"
+                          >
+                            <div className="relative aspect-square w-full overflow-hidden">
+                              <img
+                                src={x.image_url || fallbackImage(x.category as ListingCategory)}
+                                alt={x.title}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                              <Badge className="absolute left-2 top-2 bg-white/85 text-foreground backdrop-blur font-bold text-[10px]">
+                                {x.category}
+                              </Badge>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  toggleFavorite(x.id, x.title);
+                                }}
+                                className="absolute right-2 top-2 z-10 grid h-8 w-8 place-items-center rounded-full bg-black/50 text-white backdrop-blur transition active:scale-95 hover:bg-black/75 shadow-md"
+                              >
+                                <Heart
+                                  className={`h-4 w-4 ${isFav ? "fill-red-500 text-red-500" : "text-white"}`}
+                                />
+                              </button>
+                              {isFree && (
+                                <span className="absolute left-2 bottom-2 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-extrabold text-white shadow-brand">
+                                  GRÁTIS 🎁
+                                </span>
+                              )}
+                            </div>
+                            <div className="p-3">
+                              <h3 className="line-clamp-1 text-sm font-bold text-foreground">{x.title}</h3>
+                              <p className="line-clamp-1 text-[11px] text-muted-foreground">
+                                {x.city ?? x.address ?? "—"}
+                              </p>
+                              <div className="mt-1 flex items-center justify-between">
+                                <span />
+                                {isFree ? (
+                                  <span className="text-[11px] font-extrabold text-emerald-600 dark:text-emerald-400 bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                                    GRÁTIS 🎁
+                                  </span>
+                                ) : isPremium ? (
+                                  <div className="text-right">
+                                    <span className="text-[9px] font-black text-amber-500 block uppercase">
+                                      👑 Premium
+                                    </span>
+                                    <span className="text-xs font-black text-amber-500 dark:text-amber-400">
+                                      R$ {x.premium_price || Math.round((x.price || 120) * 0.7)}
+                                    </span>
+                                  </div>
+                                ) : (
+                                  <div className="text-right">
+                                    <div className="text-xs font-black text-foreground">
+                                      R$ {x.price || 120}
+                                    </div>
+                                    <div className="text-[9.5px] font-black text-amber-600 dark:text-amber-400">
+                                      👑 Premium R$ {x.premium_price || Math.round((x.price || 120) * 0.7)}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>

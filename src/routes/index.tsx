@@ -232,6 +232,17 @@ export function Home() {
   const isPurePartner = isPartner && !isRealAdmin && (!simulatedRole || simulatedRole === "partner");
   const profile = useProfile(user?.id);
   const navigate = useNavigate();
+  const [heroSearchQuery, setHeroSearchQuery] = useState("");
+
+  const handleHeroSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = heroSearchQuery.trim();
+    if (query) {
+      navigate({ to: "/explorar", search: { q: query } });
+    } else {
+      navigate({ to: "/explorar" });
+    }
+  };
 
   useEffect(() => {
     if (isPurePartner) {
@@ -546,29 +557,27 @@ export function Home() {
 
             {/* Bloco Inferior: Barra de Busca reposicionada na parte inferior da foto */}
             <div className="relative pt-12 pb-1">
-              <div
-                onClick={() => navigate({ to: "/explorar" })}
-                className="flex items-center justify-between rounded-full bg-white dark:bg-slate-900 p-1.5 pl-4 shadow-elevated border border-slate-200/80 dark:border-slate-800 cursor-pointer hover:shadow-brand/20 transition group"
+              <form
+                onSubmit={handleHeroSearchSubmit}
+                className="flex items-center justify-between rounded-full bg-white dark:bg-slate-900 p-1.5 pl-4 shadow-elevated border border-slate-200/80 dark:border-slate-800 hover:shadow-brand/20 transition group"
               >
                 <div className="flex items-center gap-2.5 flex-1 min-w-0">
                   <Search className="h-5 w-5 text-muted-foreground shrink-0 group-hover:text-primary transition" />
                   <input
-                    readOnly
+                    value={heroSearchQuery}
+                    onChange={(e) => setHeroSearchQuery(e.target.value)}
                     placeholder="Buscar passeios, cupons, restaurantes..."
-                    className="w-full bg-transparent text-xs sm:text-sm font-semibold text-foreground placeholder:text-muted-foreground outline-none cursor-pointer"
+                    className="w-full bg-transparent text-xs sm:text-sm font-semibold text-foreground placeholder:text-muted-foreground outline-none"
                   />
                 </div>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    navigate({ to: "/explorar" });
-                  }}
+                  type="submit"
                   className="rounded-full bg-gradient-brand px-5 sm:px-6 py-2.5 text-xs font-black text-white shadow-brand hover:opacity-95 transition active:scale-95 shrink-0 flex items-center gap-1.5"
                 >
                   <span>Buscar</span>
                   <ArrowRight className="h-3.5 w-3.5" />
                 </button>
-              </div>
+              </form>
 
               {/* Indicadores das fotos cadastradas no Destino */}
               {cityBannerPhotos.length > 1 && (
