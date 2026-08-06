@@ -476,10 +476,11 @@ export function AdminPanelPage() {
   const [asaasApiKey, setAsaasApiKey] = useState(() => {
     if (typeof window !== "undefined") {
       return (
-        localStorage.getItem("borapass:api-asaas-key") || "$aact_YTU5YTE0M2Y6NDk2..."
+        localStorage.getItem("borapass:api-asaas-key") ||
+        "$aact_hmlg_sandbox_key_configured"
       );
     }
-    return "$aact_YTU5YTE0M2Y6NDk2...";
+    return "$aact_hmlg_sandbox_key_configured";
   });
   const [asaasBaseUrl, setAsaasBaseUrl] = useState(() => {
     if (typeof window !== "undefined") {
